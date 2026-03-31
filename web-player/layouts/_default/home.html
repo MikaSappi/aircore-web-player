@@ -24,9 +24,6 @@
             <div class="comment-fade"></div>
             <button class="expand-button" onclick="window.toggleComment()">Show more</button>
           </div>
-          <!--<div id="anytime-info">
-            <p>Jäiko jakso kesken? Kuuntele se <a href="https://radio10.fi/anytime">Anytimesta</a>!</p>
-          </div>-->
         </div>
       </div>
       <div id="upcoming-schedule"></div>
@@ -48,14 +45,10 @@
             <a href="#day-{{ $dayKey }}" class="guide-tab" data-tab="{{ $dayKey }}">{{ index $dayShort $dayKey }}</a>
           {{ end }}
         </div>
-        {{ $dayNames := dict "mon" "Maanantai" "tue" "Tiistai" "wed" "Keskiviikko" "thu" "Torstai" "fri" "Perjantai" "sat" "Lauantai" "sun" "Sunnuntai" }}
-        {{ range $dayKey := $dayOrder }}
-          {{ $dayName := index $dayNames $dayKey }}
-          <div class="guide-day" id="day-{{ $dayKey }}" data-day="{{ $dayKey }}">
-            <h2 class="guide-day-name">{{ $dayName }}</h2>
-            <div class="guide-timeline-track"></div>
-          </div>
-        {{ end }}
+        <div class="guide-day" id="guide-active-day">
+          <h2 class="guide-day-name" id="guide-active-day-name"></h2>
+          <div class="guide-timeline-track" id="guide-active-track"></div>
+        </div>
       </div>
     </div>
 

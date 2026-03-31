@@ -192,7 +192,13 @@
 
     var html = '<div class="sched-compact">';
 
+    // Row 0: title for the section
+    html += '<div class="next-up-title">';
+    html += '<span>Ohjelmassa lähitunteina</span>';
+    html += '</div>'
+
     // Row 1: music now → next
+    html += '<div class="sched-prog-info">Musiikkia:</div>';
     html += '<div class="sched-row">';
     if (mus.current) {
       html += '<span class="sched-now">' + mus.current.name + '</span>';
@@ -204,6 +210,7 @@
     html += '</div>';
 
     // Row 2: podcast now → next
+    html += '<div class="sched-prog-info">Podcasteja:</div>'
     html += '<div class="sched-row sched-row-pod">';
     if (pod.current) {
       html += '<span class="sched-now">' + pod.current.name + '</span>';
@@ -214,7 +221,6 @@
     }
     html += '</div>';
 
-    html += '<a href="#" onclick="window.openGuide();return false" class="schedule-full-link">Ohjelmakartta</a>';
     html += '</div>';
 
     container.innerHTML = html;
@@ -239,7 +245,6 @@
       windowStart, windowEnd, currentMinutes, null
     );
 
-    html += '<a href="#" onclick="window.openGuide();return false" class="schedule-full-link">Koko viikon ohjelmakartta</a>';
     html += '</div>';
 
     container.innerHTML = html;
@@ -255,42 +260,58 @@
     }
   }
 
-  // ── Guide overlay: full day dual-track timelines ──
-  function renderGuideTimelines(programData) {
+  var DAY_NAMES = {
+    mon: 'Maanantai', tue: 'Tiistai', wed: 'Keskiviikko',
+    thu: 'Torstai', fri: 'Perjantai', sat: 'Lauantai', sun: 'Sunnuntai'
+  };
+
+  var activeGuideDay = null;
+
+  // ── Guide overlay: render a single day ──
+  function renderGuideDay(dayKey, programData) {
     var now = new Date();
     var currentMinutes = now.getHours() * 60 + now.getMinutes();
     var todayKey = DAY_KEYS[now.getDay()];
+    var isToday = (dayKey === todayKey);
 
-    var dayContainers = document.querySelectorAll('.guide-day[data-day]');
-    for (var d = 0; d < dayContainers.length; d++) {
-      var dayEl = dayContainers[d];
-      var dayKey = dayEl.getAttribute('data-day');
-      var trackEl = dayEl.querySelector('.guide-timeline-track');
-      if (!trackEl) continue;
+    var trackEl = document.getElementById('guide-active-track');
+    var nameEl = document.getElementById('guide-active-day-name');
+    var dayEl = document.getElementById('guide-active-day');
+    if (!trackEl || !nameEl || !dayEl) return;
 
-      var isToday = (dayKey === todayKey);
-      var nowMin = isToday ? currentMinutes : null;
-
-      trackEl.innerHTML = renderDualTrack(
-        programData.music[dayKey] || {},
-        programData.podcasts[dayKey] || {},
-        0, 24 * 60, nowMin, 2
-      );
-
-      if (isToday) {
-        dayEl.classList.add('guide-day-today');
-        var dayNameEl = dayEl.querySelector('.guide-day-name');
-        if (dayNameEl && !dayNameEl.querySelector('.today-marker')) {
-          dayNameEl.insertAdjacentHTML('beforeend', ' <span class="today-marker">\u2014 t\u00e4n\u00e4\u00e4n</span>');
-        }
-      }
+    var label = DAY_NAMES[dayKey] || dayKey;
+    if (isToday) {
+      label += ' <span class="today-marker">\u2014 t\u00e4n\u00e4\u00e4n</span>';
+      dayEl.classList.add('guide-day-today');
+    } else {
+      dayEl.classList.remove('guide-day-today');
     }
+    nameEl.innerHTML = label;
 
+    trackEl.innerHTML = renderDualTrack(
+      programData.music[dayKey] || {},
+      programData.podcasts[dayKey] || {},
+      0, 24 * 60, isToday ? currentMinutes : null, 2
+    );
+
+    // Update active tab
     var tabs = document.querySelectorAll('.guide-tab[data-tab]');
     for (var t = 0; t < tabs.length; t++) {
-      if (tabs[t].getAttribute('data-tab') === todayKey) {
-        tabs[t].classList.add('tab-today');
-      }
+      var tab = tabs[t];
+      tab.classList.toggle('tab-active', tab.getAttribute('data-tab') === dayKey);
+      tab.classList.toggle('tab-today', tab.getAttribute('data-tab') === todayKey);
+    }
+
+    activeGuideDay = dayKey;
+  }
+
+  function initGuideTabs(programData) {
+    var tabs = document.querySelectorAll('.guide-tab[data-tab]');
+    for (var t = 0; t < tabs.length; t++) {
+      tabs[t].addEventListener('click', function(e) {
+        e.preventDefault();
+        renderGuideDay(this.getAttribute('data-tab'), programData);
+      });
     }
   }
 
@@ -303,17 +324,15 @@
     overlay.classList.add('guide-open');
     document.body.style.overflow = 'hidden';
 
-    if (!guideInitialized && window.PROGRAM_DATA) {
-      renderGuideTimelines(window.PROGRAM_DATA);
+    if (!window.PROGRAM_DATA) return;
+
+    if (!guideInitialized) {
+      initGuideTabs(window.PROGRAM_DATA);
       guideInitialized = true;
     }
 
-    setTimeout(function() {
-      var todayEl = overlay.querySelector('.guide-day-today');
-      if (todayEl) {
-        todayEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    var todayKey = DAY_KEYS[new Date().getDay()];
+    renderGuideDay(activeGuideDay || todayKey, window.PROGRAM_DATA);
   };
 
   window.closeGuide = function() {
