@@ -1,5 +1,4 @@
 ---
 title: "Radio 10"
-description: "radio 10 web page"
+description: "Listen to Radio 10. Streaming all day, every day."
 ---
-ksdfl
