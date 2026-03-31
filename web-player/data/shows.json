@@ -1,0 +1,28 @@
+{
+ "shows": {
+        "kasarin-lapset": {
+            "plays": {
+                "m": ["0900", "1700"],
+                "tu": ["0900", "1700"],
+                "w": ["0900", "1700"],
+                "th": ["0900", "1700"],
+                "f": ["0900", "1700"],
+                "sat": ["0900", "1700"],
+                "sun": ["0900", "1700"]
+            },
+            "anytime": "https://radio10.fi/anytime/feed/kasarin-lapset"
+            }
+        },
+        "pensikon-reunalla": {
+            "plays": {
+
+            },
+            "anytime": "https://radio10.fi/anytime/feed/pensikon-reunalla"
+        },
+        "maanantai": {
+            "plays": {
+
+            },
+            "anytime": "https://radio10.fi/anytime/feed/maanantai"
+        }
+}

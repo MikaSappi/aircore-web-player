@@ -1,0 +1,23 @@
+baseURL = 'https://player.radio10.fi/'
+locale = 'fi-fi'
+title = 'Radio 10'
+
+enableRobotsTXT = true
+
+[markup.goldmark.renderer]
+unsafe= true
+
+[markup.goldmark.extensions.passthrough]
+  enable = true
+  [markup.goldmark.extensions.passthrough.delimiters]
+    block = [["$$", "$$"]]
+    inline = [["$", "$"]]
+
+uglyURLs = false
+
+[minify]
+  minifyOutput = true
+  [minify.tdewolff.html]
+    keepWhitespace = false
+  [minify.tdewolff.css.2]
+    keepCSS2 = false

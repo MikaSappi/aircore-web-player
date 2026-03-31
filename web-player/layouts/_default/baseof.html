@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <link rel="canonical" href="{{ .Permalink }}">
+    <title>{{ .Title }} | {{ .Site.Title }}</title>
+    <meta name="description" content="{{ .Description }}">
+    {{ $pngIcon := resources.Get "img/r10-small-sq.png" }}
+    {{ $favicon32 := $pngIcon.Resize "32x32" }}
+    {{ $apple180 := $pngIcon.Resize "180x180" }}
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ $favicon32.RelPermalink }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ $apple180.RelPermalink }}">
+    {{ partial "schema.html" . }}
+
+    <!-- OG -->
+    <meta property="og:image" content="{{ $pngIcon.RelPermalink }}" />
+    <meta property="og:title" content="{{ .Title }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="{{ .Permalink }}" />
+
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#44319c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+
+    {{ $styles := resources.Get "style.css" }}
+
+    {{ $inline := slice $styles | resources.Concat "inline-bundled.css" | minify | fingerprint }}
+
+    <style>{{ $inline.Content | safeCSS }}</style>
+    {{ block "header scripts" . }}
+    {{ end }}
+    <script src="/js/hls.js"></script>
+    <script src="/js/fh.js"></script>
+</head>
+<body>
+    {{ partial "navbar.html" . }}
+    {{ block "main" . }}{{ end }}
+    {{ partial "cookie.html" . }}
+    {{ partial "footer.html" . }}
+    <script src="/js/intersection_observer.js"></script>
+    <script>
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+        window.addEventListener('resize', () => {
+          vh = window.innerHeight * 0.01;
+          document.documentElement.style.setProperty('--vh', `${vh}px`);
+        });
+    </script>
+    <script>
+    (function() {
+      const CONSENT_COOKIE = 'user_consent';
+      const CONSENT_DURATION = 365;
+
+      function getConsent() {
+        const match = document.cookie.match(new RegExp('(^| )' + CONSENT_COOKIE + '=([^;]+)'));
+        return match ? match[2] : null;
+      }
+
+      function setConsent(value) {
+        const date = new Date();
+        date.setTime(date.getTime() + (CONSENT_DURATION * 24 * 60 * 60 * 1000));
+        document.cookie = CONSENT_COOKIE + '=' + value + ';expires=' + date.toUTCString() + ';path=/;SameSite=Lax';
+      }
+
+      function initGA4Cookieless() {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+
+        gtag('consent', 'default', {
+          'analytics_storage': 'denied',
+          'ad_storage': 'denied'
+        });
+
+        gtag('js', new Date());
+        gtag('config', 'G-7J0TRNPSVP', {
+          'anonymize_ip': true,
+          'client_storage': 'none'
+        });
+
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-7J0TRNPSVP';
+        document.head.appendChild(script);
+      }
+
+      function enableFullTracking() {
+        if (window.gtag) {
+          gtag('consent', 'update', {
+            'analytics_storage': 'granted'
+          });
+        }
+      }
+
+      function acceptCookies() {
+        setConsent('accepted');
+        enableFullTracking();
+        const banner = document.getElementById('cookie-banner');
+        if (banner) banner.remove();
+      }
+
+      function declineCookies() {
+        setConsent('declined');
+        const banner = document.getElementById('cookie-banner');
+        if (banner) banner.remove();
+      }
+
+      const consent = getConsent();
+
+      if (consent === 'accepted') {
+        initGA4Cookieless();
+        enableFullTracking();
+      } else if (!consent) {
+        initGA4Cookieless();
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        const banner = document.getElementById('cookie-banner');
+
+        if (consent === 'accepted') {
+          enableFullTracking();
+          if (banner) banner.remove();
+        } else if (consent === 'declined' && banner) {
+          banner.remove();
+        }
+
+        const acceptBtn = document.getElementById('accept-btn');
+        const declineBtn = document.getElementById('decline-btn');
+
+        if (acceptBtn) acceptBtn.addEventListener('click', acceptCookies);
+        if (declineBtn) declineBtn.addEventListener('click', declineCookies);
+      });
+    })();
+    </script>
+</body>
+</html>

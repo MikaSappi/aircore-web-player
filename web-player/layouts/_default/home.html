@@ -1,0 +1,70 @@
+{{ define "main" }}
+<body>
+  <center>
+    <div class="full-height">
+      <div class="player-container">
+          <img id="podcast-image" class="podcast-image" alt="Podcast artwork">
+        <button id="playStopButton" onclick="window.togglePlayback()" class="play-stop-button">
+              <span class="" id="play">
+                  <img src="/core-icons-svg/nrk-media-play.svg" />
+              </span>
+              <span class="hidden" id="stop">
+                  <img src="/core-icons-svg/nrk-media-stop.svg" />
+              </span>
+        </button>
+        <video id="video" playsinline webkit-playsinline x-webkit-airplay="allow" style="position: absolute; visibility: hidden; width: 0; height: 0;">
+        </video>
+        <div id="metadata-container">
+          <div id="artist">Ladataan...</div>
+          <div id="title"></div>
+          <div id="album">
+          </div>
+          <div id="comment-wrapper">
+            <div id="comment"></div>
+            <div class="comment-fade"></div>
+            <button class="expand-button" onclick="window.toggleComment()">Show more</button>
+          </div>
+          <!--<div id="anytime-info">
+            <p>Jäiko jakso kesken? Kuuntele se <a href="https://radio10.fi/anytime">Anytimesta</a>!</p>
+          </div>-->
+        </div>
+      </div>
+      <div id="upcoming-schedule"></div>
+    </div>
+    <script src="/js/player.js"></script>
+
+    <!-- Schedule overlay -->
+    <div id="guide-overlay" class="guide-overlay">
+      <div class="guide-overlay-inner">
+        <div class="guide-header">
+          <h1 class="guide-title">Ohjelmakartta</h1>
+          <button class="guide-close" onclick="window.closeGuide()">&times;</button>
+        </div>
+        <p class="guide-subtitle">Radio 10 — viikon ohjelma</p>
+        <div class="guide-day-tabs">
+          {{ $dayShort := dict "mon" "Ma" "tue" "Ti" "wed" "Ke" "thu" "To" "fri" "Pe" "sat" "La" "sun" "Su" }}
+          {{ $dayOrder := slice "mon" "tue" "wed" "thu" "fri" "sat" "sun" }}
+          {{ range $dayKey := $dayOrder }}
+            <a href="#day-{{ $dayKey }}" class="guide-tab" data-tab="{{ $dayKey }}">{{ index $dayShort $dayKey }}</a>
+          {{ end }}
+        </div>
+        {{ $dayNames := dict "mon" "Maanantai" "tue" "Tiistai" "wed" "Keskiviikko" "thu" "Torstai" "fri" "Perjantai" "sat" "Lauantai" "sun" "Sunnuntai" }}
+        {{ range $dayKey := $dayOrder }}
+          {{ $dayName := index $dayNames $dayKey }}
+          <div class="guide-day" id="day-{{ $dayKey }}" data-day="{{ $dayKey }}">
+            <h2 class="guide-day-name">{{ $dayName }}</h2>
+            <div class="guide-timeline-track"></div>
+          </div>
+        {{ end }}
+      </div>
+    </div>
+
+    <script>
+      window.PROGRAM_DATA = {{ $.Site.Data.program | jsonify | safeJS }};
+    </script>
+    {{ $schedule := resources.Get "js/schedule.js" | minify | fingerprint }}
+    <script src="{{ $schedule.RelPermalink }}"></script>
+  </center>
+</body>
+
+{{ end }}

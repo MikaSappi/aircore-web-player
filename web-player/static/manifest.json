@@ -1,0 +1,17 @@
+{
+  "name": "Radio 10",
+  "short_name": "Radio 10",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#44319c",
+  "theme_color": "#44319c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/img/r10-small-sq.png",
+      "sizes": "1080x1080",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
