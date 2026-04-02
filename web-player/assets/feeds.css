@@ -1,0 +1,342 @@
+/* =============================================================================
+   FEEDS — Feed index, feed page, episode list, episode detail
+   ============================================================================= */
+
+/* ── Feed Index (/feeds/) ── */
+
+.feeds-index {
+    width: 80vw;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem calc(6rem + 44px + env(safe-area-inset-bottom, 0px));
+}
+
+.feeds-index__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+}
+
+.feeds-index__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.feed-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+}
+
+.feed-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.feed-card__image-wrap {
+    flex-shrink: 0;
+    width: 72px;
+    height: 72px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.feed-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.feed-card__info {
+    min-width: 0;
+    flex: 1;
+}
+
+.feed-card__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--white);
+    margin: 0 0 4px;
+}
+
+.feed-card__description {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.8rem;
+    color: var(--base-light);
+    margin: 0;
+    max-width: none;
+}
+
+/* ── Feed Page (/feeds/{id}/) ── */
+
+.feed-page {
+    max-width: 90vw;
+    margin: 0 auto;
+    padding: 2rem 1rem calc(6rem + 44px + env(safe-area-inset-bottom, 0px));
+}
+
+.feed-page__search {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    margin-bottom: 1rem;
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.9rem;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.feed-page__search::placeholder {
+    color: var(--base-light);
+}
+
+.feed-page__search:focus {
+    border-color: var(--accent);
+}
+
+.feed-page__header {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+}
+
+.feed-page__cover {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.feed-page__meta {
+    min-width: 0;
+}
+
+.feed-page__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--white);
+    margin: 0 0 8px;
+}
+
+.feed-page__description {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.85rem;
+    color: var(--base-light);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.feed-page__loading {
+    font-family: 'Wotfard', 'Poppins', serif;
+    color: var(--base-light);
+    font-size: 0.85rem;
+    padding: 1rem 0;
+}
+
+.feed-page__empty {
+    font-family: 'Wotfard', 'Poppins', serif;
+    color: var(--base-light);
+    font-size: 0.85rem;
+    padding: 1rem 0;
+}
+
+/* ── Episode Cards (episode index within a feed) ── */
+
+.episode-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.episode-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.episode-card__image {
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.episode-card__info {
+    min-width: 0;
+    flex: 1;
+}
+
+.episode-card__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--white);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.episode-card__meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.episode-card__date,
+.episode-card__duration {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.75rem;
+    color: var(--base-light);
+}
+
+/* ── Load more button ── */
+
+.episode-load-more {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 8px;
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.85rem;
+    color: var(--base-light);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.episode-load-more:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Episode Detail Panel ── */
+
+.episode-detail {
+    display: none;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 1rem calc(6rem + 44px + env(safe-area-inset-bottom, 0px));
+}
+
+.episode-detail__back {
+    display: block;
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.85rem;
+    color: var(--base-light);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 0;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.episode-detail__back:hover {
+    color: var(--white);
+}
+
+.episode-detail__image {
+    display: block;
+    width: 100%;
+    max-width: 240px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.episode-detail__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--white);
+    margin: 0 0 6px;
+}
+
+.episode-detail__date {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.8rem;
+    color: var(--base-light);
+    margin-bottom: 1rem;
+}
+
+.episode-detail__description {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.85rem;
+    color: var(--base-light);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.episode-detail__play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--base-gray);
+    background: var(--accent);
+    border: none;
+    border-radius: 24px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.episode-detail__play-btn:hover {
+    opacity: 0.85;
+}
+
+.episode-detail__play-btn img {
+    width: 20px;
+    height: 20px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+    .feed-page__header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .feed-page__cover {
+        width: 140px;
+        height: 140px;
+    }
+
+    .feed-card__image-wrap {
+        width: 60px;
+        height: 60px;
+    }
+}

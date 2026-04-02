@@ -1,0 +1,436 @@
+.player-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+
+    /* Glass effect — frosted background */
+    background: rgba(29, 29, 31, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    /* Start hidden, slide up when activated */
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+
+    /* Prevent text selection on the bar (it's a control, not content) */
+    user-select: none;
+    -webkit-user-select: none;
+
+    cursor: pointer;
+    pointer-events: none;
+}
+
+/* When the JS adds this class, the bar slides into view */
+.player-bar--visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Progress bar ── */
+.player-bar__progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+.player-bar__progress--active {
+    display: block;
+}
+
+.player-bar__progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.5s linear;
+}
+
+/* ── Content wrapper ── */
+.player-bar__content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 120px;
+}
+
+/* ── Album art ── */
+.player-bar__image {
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    object-fit: cover;
+
+    /* Hidden by default, shown when an image URL is set */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+
+    /* Prevent layout shift when image is hidden */
+    flex-shrink: 0;
+}
+
+/* ── Track info area ── */
+.player-bar__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.player-bar__title {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--white);
+    line-height: 1.3;
+
+    /* Truncate long titles with ellipsis instead of wrapping */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-bar__artist {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--base-light);
+    line-height: 1.3;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Mode badge (LIVE / ON DEMAND) ── */
+.player-bar__mode {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    width: fit-content;
+}
+
+.player-bar__mode--live {
+    background: rgba(220, 50, 50, 0.9);
+    color: var(--white);
+}
+
+.player-bar__mode--aod {
+    background: var(--accent);
+    color: var(--base-gray);
+}
+
+/* ── Play/Stop button ── */
+.player-bar__button {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s ease;
+}
+
+.player-bar__button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.player-bar__button:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.player-bar__button img {
+    /* Invert the dark icons to white for the dark bar */
+    filter: invert(1);
+    width: 28px;
+    height: 28px;
+}
+
+/* ── Utility ── */
+.hidden {
+    display: none !important;
+}
+
+/* ── Episode card play button ── */
+.episode-card__play {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: opacity 0.15s ease;
+}
+
+.episode-card__play:hover {
+    opacity: 0.85;
+}
+
+.episode-card__play img {
+    width: 18px;
+    height: 18px;
+}
+
+/* =============================================================================
+   EXPANDED PLAYER VIEW
+   ============================================================================= */
+
+.player-expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    background: rgba(10, 10, 12, 0.97);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.player-expanded--open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.player-expanded__inner {
+    width: 90%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+}
+
+.player-expanded__close {
+    position: absolute;
+    top: -48px;
+    right: 0;
+    background: none;
+    border: none;
+    color: var(--base-light);
+    font-size: 32px;
+    cursor: pointer;
+    padding: 8px;
+    line-height: 1;
+}
+
+.player-expanded__close:hover {
+    color: var(--white);
+}
+
+.player-expanded__image {
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.player-expanded__meta {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.player-expanded__mode {
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 3px;
+    width: fit-content;
+    margin-bottom: 4px;
+}
+
+.player-expanded__mode--live {
+    background: rgba(220, 50, 50, 0.9);
+    color: var(--white);
+}
+
+.player-expanded__mode--aod {
+    background: var(--accent);
+    color: var(--base-gray);
+}
+
+.player-expanded__title {
+    display: block;
+    font-family: 'Brockmann', 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--white);
+    text-decoration: none;
+    margin-bottom: 4px;
+}
+
+.player-expanded__title:hover {
+    text-decoration: underline;
+}
+
+.player-expanded__artist {
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.9rem;
+    color: var(--base-light);
+}
+
+/* ── Seek bar ── */
+.player-expanded__progress-wrap {
+    width: 100%;
+}
+
+.player-expanded__seek {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.player-expanded__seek::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--white);
+    cursor: pointer;
+}
+
+.player-expanded__seek::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--white);
+    cursor: pointer;
+    border: none;
+}
+
+.player-expanded__times {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Wotfard', 'Poppins', serif;
+    font-size: 0.75rem;
+    color: var(--base-light);
+    margin-top: 6px;
+}
+
+/* ── Play button ── */
+.player-expanded__controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-expanded__play-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: var(--white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: opacity 0.15s ease;
+}
+
+.player-expanded__play-btn:hover {
+    opacity: 0.9;
+}
+
+.player-expanded__play-btn img {
+    width: 48px;
+    height: 48px;
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 768px) {
+    .player-bar__content {
+        padding: 8px 12px;
+    }
+
+    .player-bar {
+        bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .player-bar__image {
+        width: 36px;
+        height: 36px;
+    }
+
+    .player-bar__title {
+        font-size: 13px;
+    }
+
+    .player-bar__artist {
+        font-size: 11px;
+    }
+}
+
+@media (prefers-color-scheme:light) {
+    .player-expanded {
+        background-color: var(--base-light);
+    }
+
+    .player-expanded__title {
+        color: var(--base-gray);
+    }
+
+    .player-expanded__artist {
+        color: var(--base-gray);
+    }
+
+    .player-expanded__play-btn {
+        background: var(--base-gray);
+    }
+
+    #player-expanded-play-icon,
+    #player-expanded-stop-icon {
+        filter: invert(100%);
+    }
+
+    .player-expanded__close {
+        filter: invert(100%);
+    }
+}

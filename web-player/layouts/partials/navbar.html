@@ -1,9 +1,12 @@
 <div class="navbar">
     <div class="nav-logo-wrap">
-        <img src="/svg/radio10-new-wide.svg" class="navbar-logo" width="200px" height="auto" />
+        <a href="/">
+            <img src="/svg/radio10-new-wide.svg" class="navbar-logo" width="200px" height="auto" />
+        </a>
     </div>
     <div class="nav-links">
-        <a href="#" onclick="window.openGuide();return false">Ohjelmakartta</a>
-        <a target="_blank" href="https://www.radio10.fi/anytime">Anytime</a>
+        <a class="navigation-links" id="progGuideButton" href="#" onclick="window.openGuide();return false">Ohjelmakartta</a>
+        <a class="navigation-links" id="menuAODButton" href="/feeds/">Anytime</a>
+        <a class="navigation-links" id="menuLiveButton" href="/">Live</a>
     </div>
 </div>

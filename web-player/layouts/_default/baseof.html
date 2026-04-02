@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="referrer" content="no-referrer">
     <link rel="canonical" href="{{ .Permalink }}">
     <title>{{ .Title }} | {{ .Site.Title }}</title>
@@ -27,115 +27,78 @@
     <link rel="manifest" href="/manifest.json">
 
     {{ $styles := resources.Get "style.css" }}
+    {{ $playerCSS := resources.Get "player.css" }}
+    {{ $feedsCSS := resources.Get "feeds.css" }}
 
-    {{ $inline := slice $styles | resources.Concat "inline-bundled.css" | minify | fingerprint }}
+    {{ $inline := slice $styles $playerCSS $feedsCSS | resources.Concat "inline-bundled.css" | minify | fingerprint }}
 
     <style>{{ $inline.Content | safeCSS }}</style>
     {{ block "header scripts" . }}
     {{ end }}
-    <script src="/js/hls.js"></script>
-    <script src="/js/fh.js"></script>
+    {{ $hlsJs := resources.Get "/js/hls.js" }}
+
+    <!-- NOTE!!! HLS IS ALREADY MINIFIED. -->
+
+    {{ $hlsMin := $hlsJs | fingerprint }}
+    <script src="{{ $hlsMin.RelPermalink }}"></script>
+    {{ $fhJs := resources.Get "/js/fh.js" }}
+    {{ $fhMin := $fhJs | minify }}
+    <script src="{{ $fhMin.RelPermalink }}"></script>
 </head>
-<body>
+<body{{ if .IsHome }} class="no-scroll"{{ end }}>
     {{ partial "navbar.html" . }}
-    {{ block "main" . }}{{ end }}
+
+    {{/* Persistent audio element — lives OUTSIDE the swappable area
+         so it survives client-side navigation. HLS attaches to this. */}}
+    <video id="video" playsinline webkit-playsinline x-webkit-airplay="allow"
+           style="position:absolute;visibility:hidden;width:0;height:0;"></video>
+
+    {{/* This is the only part that gets swapped during SPA navigation.
+         Everything outside this div persists: navbar, audio, player bar. */}}
+    <div id="app-content">
+      {{ block "main" . }}{{ end }}
+    </div>
+
+    <!-- Schedule overlay (outside app-content so it persists across SPA navigation) -->
+    <div id="guide-overlay" class="guide-overlay">
+      <div class="guide-overlay-inner">
+        <div class="guide-header">
+          <h1 class="guide-title">Ohjelmakartta</h1>
+          <button class="guide-close" onclick="window.closeGuide()">&times;</button>
+        </div>
+        <p class="guide-subtitle">Radio 10 — viikon ohjelma</p>
+        <div class="guide-day-tabs">
+          {{ $dayShort := dict "mon" "Ma" "tue" "Ti" "wed" "Ke" "thu" "To" "fri" "Pe" "sat" "La" "sun" "Su" }}
+          {{ $dayOrder := slice "mon" "tue" "wed" "thu" "fri" "sat" "sun" }}
+          {{ range $dayKey := $dayOrder }}
+            <a href="#day-{{ $dayKey }}" class="guide-tab" data-tab="{{ $dayKey }}">{{ index $dayShort $dayKey }}</a>
+          {{ end }}
+        </div>
+        <div class="guide-day" id="guide-active-day">
+          <h2 class="guide-day-name" id="guide-active-day-name"></h2>
+          <div class="guide-timeline-track" id="guide-active-track"></div>
+        </div>
+      </div>
+    </div>
+
+    {{ partial "menubar.html" . }}
     {{ partial "cookie.html" . }}
+    {{ partial "player-module.html" . }}
     {{ partial "footer.html" . }}
-    <script src="/js/intersection_observer.js"></script>
-    <script>
-        let vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-
-        window.addEventListener('resize', () => {
-          vh = window.innerHeight * 0.01;
-          document.documentElement.style.setProperty('--vh', `${vh}px`);
-        });
-    </script>
-    <script>
-    (function() {
-      const CONSENT_COOKIE = 'user_consent';
-      const CONSENT_DURATION = 365;
-
-      function getConsent() {
-        const match = document.cookie.match(new RegExp('(^| )' + CONSENT_COOKIE + '=([^;]+)'));
-        return match ? match[2] : null;
-      }
-
-      function setConsent(value) {
-        const date = new Date();
-        date.setTime(date.getTime() + (CONSENT_DURATION * 24 * 60 * 60 * 1000));
-        document.cookie = CONSENT_COOKIE + '=' + value + ';expires=' + date.toUTCString() + ';path=/;SameSite=Lax';
-      }
-
-      function initGA4Cookieless() {
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        window.gtag = gtag;
-
-        gtag('consent', 'default', {
-          'analytics_storage': 'denied',
-          'ad_storage': 'denied'
-        });
-
-        gtag('js', new Date());
-        gtag('config', 'G-7J0TRNPSVP', {
-          'anonymize_ip': true,
-          'client_storage': 'none'
-        });
-
-        const script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-7J0TRNPSVP';
-        document.head.appendChild(script);
-      }
-
-      function enableFullTracking() {
-        if (window.gtag) {
-          gtag('consent', 'update', {
-            'analytics_storage': 'granted'
-          });
-        }
-      }
-
-      function acceptCookies() {
-        setConsent('accepted');
-        enableFullTracking();
-        const banner = document.getElementById('cookie-banner');
-        if (banner) banner.remove();
-      }
-
-      function declineCookies() {
-        setConsent('declined');
-        const banner = document.getElementById('cookie-banner');
-        if (banner) banner.remove();
-      }
-
-      const consent = getConsent();
-
-      if (consent === 'accepted') {
-        initGA4Cookieless();
-        enableFullTracking();
-      } else if (!consent) {
-        initGA4Cookieless();
-      }
-
-      document.addEventListener('DOMContentLoaded', function() {
-        const banner = document.getElementById('cookie-banner');
-
-        if (consent === 'accepted') {
-          enableFullTracking();
-          if (banner) banner.remove();
-        } else if (consent === 'declined' && banner) {
-          banner.remove();
-        }
-
-        const acceptBtn = document.getElementById('accept-btn');
-        const declineBtn = document.getElementById('decline-btn');
-
-        if (acceptBtn) acceptBtn.addEventListener('click', acceptCookies);
-        if (declineBtn) declineBtn.addEventListener('click', declineCookies);
-      });
-    })();
-    </script>
+    {{ $playerJs := resources.Get "/js/player.js" }}
+    {{ $playerMin :=  $playerJs | minify | fingerprint }}
+    <script src="{{ $playerMin.RelPermalink }}"></script>
+    {{ $playerModuleJs := resources.Get "/js/player-module.js" }}
+    {{ $playerModuleMin := $playerModuleJs | minify | fingerprint }}
+    <script src="{{ $playerModuleMin.RelPermalink }}"></script>
+    {{ $routerJs := resources.Get "/js/router.js" }}
+    {{ $routerMin := $routerJs | minify | fingerprint }}
+    <script src="{{ $routerMin.RelPermalink }}"></script>
+    {{ $observerJs := resources.Get "/js/intersection_observer.js" }}
+    {{ $observerMin := $observerJs | minify | fingerprint }}
+    <script src="{{ $observerMin.RelPermalink }}"></script>
+    {{ $cookiesJs := resources.Get "/js/cookies.js" }}
+    {{ $cookiesMin := $cookiesJs | minify | fingerprint }}
+    <script src="{{ $cookiesMin.RelPermalink }}"></script>
 </body>
 </html>

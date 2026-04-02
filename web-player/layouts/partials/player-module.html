@@ -1,0 +1,64 @@
+<div id="player-bar" class="player-bar" aria-label="Audio player">
+  {{/* ── Progress bar (AOD only) ── */}}
+  <div id="player-bar-progress" class="player-bar__progress">
+    <div id="player-bar-progress-fill" class="player-bar__progress-fill"></div>
+  </div>
+
+  <div class="player-bar__content">
+    {{/* ── Album art ── */}}
+    <img
+      id="player-bar-image"
+      class="player-bar__image"
+      src=""
+      alt="Now playing artwork"
+      aria-hidden="true"
+    />
+
+    {{/* ── Track info ── */}}
+    <div class="player-bar__info">
+      <span id="player-bar-mode" class="player-bar__mode"></span>
+      <div id="player-bar-title" class="player-bar__title">Radio 10</div>
+      <div id="player-bar-artist" class="player-bar__artist"></div>
+    </div>
+
+    {{/* ── Play/Stop toggle ── */}}
+    <button class="player-bar__button" aria-label="Play or stop audio">
+      <span id="player-bar-play">
+        <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="28" height="28" />
+      </span>
+      <span id="player-bar-stop" class="hidden">
+        <img src="/core-icons-svg/nrk-media-stop.svg" alt="Stop" width="28" height="28" />
+      </span>
+    </button>
+  </div>
+</div>
+
+{{/* ── Expanded player view ── */}}
+<div id="player-expanded" class="player-expanded">
+  <div class="player-expanded__inner">
+    <button id="player-expanded-close" class="player-expanded__close">&times;</button>
+    <img id="player-expanded-image" class="player-expanded__image" src="" alt="" />
+    <div class="player-expanded__meta">
+      <span id="player-expanded-mode" class="player-expanded__mode"></span>
+      <a id="player-expanded-title" class="player-expanded__title" href="#">Title</a>
+      <div id="player-expanded-artist" class="player-expanded__artist"></div>
+    </div>
+    <div id="player-expanded-progress-wrap" class="player-expanded__progress-wrap">
+      <input id="player-expanded-seek" class="player-expanded__seek" type="range" min="0" max="100" value="0" step="0.1" />
+      <div class="player-expanded__times">
+        <span id="player-expanded-current">0:00</span>
+        <span id="player-expanded-duration">0:00</span>
+      </div>
+    </div>
+    <div class="player-expanded__controls">
+      <button id="player-expanded-play" class="player-expanded__play-btn" aria-label="Play or stop">
+        <span id="player-expanded-play-icon">
+          <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="48" height="48" />
+        </span>
+        <span id="player-expanded-stop-icon" class="hidden">
+          <img src="/core-icons-svg/nrk-media-stop.svg" alt="Stop" width="48" height="48" />
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
