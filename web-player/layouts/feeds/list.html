@@ -1,0 +1,96 @@
+{{ define "main" }}
+
+{{ if .Parent.IsHome }}
+  <div class="feeds-index">
+    <h1 class="feeds-index__title">{{ .Title }}</h1>
+
+    <div class="feeds-index__grid">
+      {{ range .Site.Data.feeds.feeds }}
+        <a href="/feeds/{{ .id }}/" class="feed-card">
+          <div class="feed-card__image-wrap">
+            {{/* Podcast cover will be loaded by JS from RSS feed */}}
+            <img
+              class="feed-card__image"
+              id="feed-cover-{{ .id }}"
+              src=""
+              alt="{{ .title }}"
+              loading="lazy"
+            />
+          </div>
+          <div class="feed-card__info">
+            <h2 class="feed-card__title">{{ .title }}</h2>
+            <p class="feed-card__description">{{ .description }}</p>
+          </div>
+        </a>
+      {{ end }}
+    </div>
+  </div>
+
+  {{/* Pass feed data to JS so it can fetch covers from RSS */}}
+  <script>
+    window.FEEDS_DATA = {{ $.Site.Data.feeds.feeds | jsonify | safeJS }};
+  </script>
+  {{ $feedIndex := resources.Get "js/feed-index.js" | minify | fingerprint }}
+  <script src="{{ $feedIndex.RelPermalink }}"></script>
+
+{{ else }}
+
+  {{/* Look up this feed's data from feeds.json using the feed_id front matter */}}
+  {{ $feedId := .Params.feed_id }}
+  {{ $feed := dict }}
+  {{ range .Site.Data.feeds.feeds }}
+    {{ if eq .id $feedId }}
+      {{ $feed = . }}
+    {{ end }}
+  {{ end }}
+
+  <a href="/feeds/">Palaa selailuun</a>
+  <div class="feed-page">
+    <div class="feed-page__header">
+      <img
+        class="feed-page__cover"
+        id="feed-page-cover"
+        src=""
+        alt="{{ .Title }}"
+      />
+      <div class="feed-page__meta">
+        <h1 class="feed-page__title">{{ .Title }}</h1>
+        <p class="feed-page__description">{{ $feed.description }}</p>
+      </div>
+    </div>
+
+    <input
+      type="text"
+      id="episode-search"
+      class="feed-page__search"
+      placeholder="Hae jaksoja..."
+      autocomplete="off"
+    />
+
+    <div class="feed-page__episodes" id="episode-list">
+      {{/* Episodes are rendered here by JS */}}
+      <div class="feed-page__loading" id="episodes-loading">Ladataan jaksoja...</div>
+    </div>
+  </div>
+
+  <div class="episode-detail" id="episode-detail" aria-hidden="true">
+    <img class="episode-detail__image" id="episode-detail-image" src="" alt="" />
+    <button class="episode-detail__back" id="episode-detail-back">&larr; Kaikki jaksot</button>
+    <h2 class="episode-detail__title" id="episode-detail-title"></h2>
+    <div class="episode-detail__date" id="episode-detail-date"></div>
+    <div class="episode-detail__description" id="episode-detail-description"></div>
+    <button class="episode-detail__play-btn" id="episode-detail-play">
+      <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="20" height="20" />
+      Kuuntele
+    </button>
+  </div>
+
+  {{/* Pass this feed's data to JS */}}
+  <script>
+    window.CURRENT_FEED = {{ $feed | jsonify | safeJS }};
+  </script>
+  {{ $feedPage := resources.Get "js/feed-page.js" | minify | fingerprint }}
+  <script src="{{ $feedPage.RelPermalink }}"></script>
+
+{{ end }}
+{{ end }}

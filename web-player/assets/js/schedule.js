@@ -223,7 +223,8 @@
 
     html += '</div>';
 
-    container.innerHTML = html;
+    container.innerHTML = '';
+    container.insertAdjacentHTML('beforeend', html);
     container.style.display = 'block';
   }
 
@@ -247,17 +248,14 @@
 
     html += '</div>';
 
-    container.innerHTML = html;
+    container.insertAdjacentHTML('beforeend', html);
     container.style.display = 'block';
   }
 
   // ── Player page: upcoming schedule ──
   function renderUpcoming(container, programData) {
-    if (window.innerWidth <= 768) {
-      renderUpcomingMobile(container, programData);
-    } else {
-      renderUpcomingDesktop(container, programData);
-    }
+    renderUpcomingMobile(container, programData);
+    renderUpcomingDesktop(container, programData);
   }
 
   var DAY_NAMES = {
@@ -333,6 +331,9 @@
 
     var todayKey = DAY_KEYS[new Date().getDay()];
     renderGuideDay(activeGuideDay || todayKey, window.PROGRAM_DATA);
+
+    const playerBar = document.getElementById('player-bar');
+    playerBar.classList.remove('player-bar--visible');
   };
 
   window.closeGuide = function() {
@@ -340,6 +341,9 @@
     if (!overlay) return;
     overlay.classList.remove('guide-open');
     document.body.style.overflow = '';
+
+    const playerBar = document.getElementById('player-bar');
+    playerBar.classList.add('player-bar--visible');
   };
 
   document.addEventListener('keydown', function(e) {
@@ -347,13 +351,13 @@
   });
 
   // ── Init ──
-  document.addEventListener('DOMContentLoaded', function() {
-    if (!window.PROGRAM_DATA) return;
-
+  // Run immediately — on first load the DOM is ready (script is at end of body),
+  // and on SPA navigation the router re-executes this script after swapping content.
+  if (window.PROGRAM_DATA) {
     var upcoming = document.getElementById('upcoming-schedule');
     if (upcoming) {
       renderUpcoming(upcoming, window.PROGRAM_DATA);
       setInterval(function() { renderUpcoming(upcoming, window.PROGRAM_DATA); }, 60000);
     }
-  });
+  }
 })();

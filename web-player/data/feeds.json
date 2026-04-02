@@ -1,0 +1,28 @@
+{
+        "feeds": [
+                {
+                        "id": "pensikon-reunalla",
+                        "title": "Pensikon Reunalla",
+                        "feedUrl": "https://media.rss.com/pensikon-reunalla/feed.xml",
+                        "description": "Ajatuksenvirtaa mieheltä, joka muutti 20 kaupungissa asutun vuoden jälkeen takaisin maaseudulle, vanhaan kotiinsa ja vanhaan huoneeseensa, josta aikoinaan maailmalle lähti."
+                },
+                {
+                    "id": "kasarin-lapset",
+                    "title": "Kasarin Lapset",
+                    "feedUrl": "https://anchor.fm/s/fc48e9e4/podcast/rss",
+                    "description": "Musiikin fiilistelyä monelta kantilta kasarista katsottuna. Vesa Winbergin isännöimässä podcastissa pääosassa on hyvä musiikki. Kuuntele, tilaa, kommentoi ja levitä Kasarin Lapsien ilosanomaa!   Kasarin Lapset paahtaa jaksot kasaan Suomen parhaan paahtimon kanssa - Lehmus Roastery."
+                },
+                {
+                    "id": "maanantai",
+                    "title": "Maanantai",
+                    "feedUrl": "https://media.rss.com/maanantai-sarja/feed.xml",
+                    "description": "Maanantai on viiden kuukauden mittainen poikkileikkaus kahden yrittäjän elämään, ja maailmaan ihmisen silmin."
+                },
+                {
+                  "id": "collins-uutiset",
+                  "title": "Radio 10 Uutiset",
+                  "feedUrl": "https://aod.collinsgroup.fi/feeds/news_feed.xml",
+                  "description": "Radio 10 uutiset, kuudesti päivässä, vuoden ympäri."
+                }
+        ]
+}

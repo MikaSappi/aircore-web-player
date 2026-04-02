@@ -167,18 +167,91 @@ class A26MetadataFetcher {
   }
 }
 
+class ArtworkFetcher {
+  constructor() {
+    this._cache = {};
+    this._lastQuery = null;
+    this._pending = null;
+  }
+
+  async fetch(artist, title) {
+    if (!artist && !title) return null;
+
+    const query = `${artist || ""} ${title || ""}`.trim();
+    if (query === this._lastQuery && this._cache[query] !== undefined) {
+      return this._cache[query];
+    }
+    this._lastQuery = query;
+
+    // Cancel conceptually: if a new request comes in, the old result is ignored
+    const thisRequest = (this._pending = {});
+
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const cb = "_deezer_cb_" + Date.now();
+        const timeout = setTimeout(() => {
+          delete window[cb];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Deezer JSONP timeout"));
+        }, 8000);
+
+        window[cb] = (response) => {
+          clearTimeout(timeout);
+          delete window[cb];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          resolve(response);
+        };
+
+        const params = new URLSearchParams({
+          q: query,
+          limit: "1",
+          output: "jsonp",
+          callback: cb,
+        });
+        const script = document.createElement("script");
+        script.src = "https://api.deezer.com/search?" + params;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          delete window[cb];
+          if (script.parentNode) script.parentNode.removeChild(script);
+          reject(new Error("Deezer JSONP load error"));
+        };
+        document.head.appendChild(script);
+      });
+
+      // If a newer request started, discard this result
+      if (this._pending !== thisRequest) return null;
+
+      if (data.data && data.data.length > 0) {
+        const artworkUrl =
+          data.data[0].album?.cover_xl ||
+          data.data[0].album?.cover_big ||
+          null;
+        this._cache[query] = artworkUrl;
+        return artworkUrl;
+      }
+
+      this._cache[query] = null;
+      return null;
+    } catch (e) {
+      console.error("Artwork fetch failed:", e);
+      return null;
+    }
+  }
+}
+
 class UnifiedPlayer {
   constructor() {
-    this.audioElement = document.getElementById("audioPlayer");
     this.videoElement = document.getElementById("video");
     this.playbackMethod = "hls"; // Always use HLS
-    this.icecastPlayer = null;
     this.hlsPlayer = null;
     this.lastMetadata = null;
     this.isPlaying = false;
     this.metadataInterval = null;
 
     this.initializeMediaSession();
+
+    this.artworkFetcher = new ArtworkFetcher();
 
     // Initialize metadata fetcher with new endpoint
     this.metadataFetcher = new A26MetadataFetcher(
@@ -192,21 +265,12 @@ class UnifiedPlayer {
     // Start metadata fetching immediately on page load
     this.metadataFetcher.start(3000);
 
-    this.playStopButton = document.getElementById("playStopButton");
-    if (this.playStopButton) {
-      this.playIcon = this.playStopButton.querySelector("#play");
-      this.pauseIcon = this.playStopButton.querySelector("#stop");
-    }
+    // Bind page-specific UI elements (play/stop button on home page).
+    // These live inside #app-content and may be swapped out by the router,
+    // so rebindPageUI() can be called again after a navigation.
+    this.rebindPageUI();
 
-    // Add event listeners for ended and error events
-    if (this.audioElement) {
-      this.audioElement.addEventListener("ended", () =>
-        this.updatePlaybackState(false),
-      );
-      this.audioElement.addEventListener("error", () =>
-        this.updatePlaybackState(false),
-      );
-    }
+    // Add event listeners for ended and error events on persistent elements
     if (this.videoElement) {
       this.videoElement.addEventListener("ended", () =>
         this.updatePlaybackState(false),
@@ -214,6 +278,19 @@ class UnifiedPlayer {
       this.videoElement.addEventListener("error", () =>
         this.updatePlaybackState(false),
       );
+    }
+  }
+
+  // Re-grab references to page-specific DOM elements.
+  // Called on init and after each SPA navigation.
+  rebindPageUI() {
+    this.playStopButton = document.getElementById("playStopButton");
+    if (this.playStopButton) {
+      this.playIcon = this.playStopButton.querySelector("#play");
+      this.pauseIcon = this.playStopButton.querySelector("#stop");
+    } else {
+      this.playIcon = null;
+      this.pauseIcon = null;
     }
   }
 
@@ -236,8 +313,24 @@ class UnifiedPlayer {
       navigator.mediaSession.playbackState = playing ? "playing" : "paused";
     }
 
-    // Ensure metadata fetching stays running
-    this.metadataFetcher.start(3000);
+    // BRIDGE: Notify the player bar module about play state changes.
+    // We use player:state (not player:play) to avoid a feedback loop.
+    // player:play is for REQUESTS ("please play this").
+    // player:state is for NOTIFICATIONS ("playback state changed").
+    document.dispatchEvent(new CustomEvent("player:state", {
+      detail: {
+        isPlaying: playing,
+        mode: this.currentMode,
+        title: this.lastMetadata?.TITLE || "",
+        artist: this.lastMetadata?.ARTIST || "",
+        image: this.lastMetadata?.image || null,
+      },
+    }));
+
+    // Ensure metadata fetching stays running (only for live)
+    if (this.currentMode === "live") {
+      this.metadataFetcher.start(3000);
+    }
   }
 
   initializeMediaSession() {
@@ -283,7 +376,6 @@ class UnifiedPlayer {
       }
 
       window.hls = new Hls({
-        // Your existing conservative config
         maxBufferLength: 60,
         maxMaxBufferLength: 120,
         liveSyncDuration: 24,
@@ -413,6 +505,18 @@ class UnifiedPlayer {
   updateMetadata(metadata) {
     console.log("Updating metadata:", metadata);
 
+    // Store latest metadata so we can include it in play events
+    this.lastMetadata = metadata;
+
+    // BRIDGE: Forward metadata to the player bar module via events
+    document.dispatchEvent(new CustomEvent("player:metadata", {
+      detail: {
+        title: metadata?.TITLE || "",
+        artist: metadata?.ARTIST || "",
+        image: metadata?.image || null,
+      },
+    }));
+
     // Update MediaSession
     if ("mediaSession" in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -435,14 +539,30 @@ class UnifiedPlayer {
     if (albumElement) albumElement.innerHTML = "";
     if (commentElement) commentElement.innerHTML = "";
 
-    // Handle podcast image
-    if (podcastImageElement) {
-      if (metadata?.image) {
-        podcastImageElement.src = metadata.image;
-        podcastImageElement.classList.add("visible");
-      } else {
-        podcastImageElement.classList.remove("visible");
-      }
+    // Handle podcast image — use provided image, or fetch from iTunes
+    if (metadata?.image) {
+      this._setArtwork(metadata.image);
+    } else if (metadata?.ARTIST || metadata?.TITLE) {
+      this.artworkFetcher.fetch(metadata.ARTIST, metadata.TITLE).then((url) => {
+        if (url) {
+          metadata.image = url;
+          this._setArtwork(url);
+          // Update player bar with the fetched artwork
+          document.dispatchEvent(new CustomEvent("player:metadata", {
+            detail: {
+              title: metadata?.TITLE || "",
+              artist: metadata?.ARTIST || "",
+              image: url,
+            },
+          }));
+        } else {
+          const el = document.getElementById("podcast-image");
+          if (el) el.classList.remove("visible");
+        }
+      });
+    } else {
+      const el = document.getElementById("podcast-image");
+      if (el) el.classList.remove("visible");
     }
 
     // Hide comment controls by default
@@ -496,33 +616,112 @@ class UnifiedPlayer {
     }
   }
 
-  play() {
-    // Always use HLS playback
-    if (this.videoElement) {
-      console.log("Starting HLS playback");
+  _setArtwork(url) {
+    const podcastImageElement = document.getElementById("podcast-image");
+    if (podcastImageElement) {
+      podcastImageElement.src = url;
+      podcastImageElement.classList.add("visible");
+    }
+    // Update MediaSession artwork
+    if ("mediaSession" in navigator && navigator.mediaSession.metadata) {
+      navigator.mediaSession.metadata.artwork = [
+        { src: url, sizes: "600x600", type: "image/jpeg" },
+      ];
+    }
+  }
 
-      // Ensure HLS is ready
-      if (typeof Hls !== "undefined" && window.hls) {
+  // What is currently loaded: 'live' or 'aod'
+  // Tracked so we know whether to restore the live HLS stream when stopping AOD.
+  currentMode = "live";
+
+  // The live stream URL, stored so we can switch back after AOD playback.
+  liveStreamURL = "https://media-cdn.collinsgroup.fi/stream.m3u8";
+
+  play() {
+    if (this.videoElement) {
+      console.log("Starting playback, mode:", this.currentMode);
+
+      if (this.currentMode === "live" && typeof Hls !== "undefined" && window.hls) {
         window.hls.startLoad();
       }
 
-      // Hide video element (we only want audio)
-      this.videoElement.style.display = "none";
-
-      // Start playback
       const playPromise = this.videoElement.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          console.error("HLS playback failed:", error);
+          console.error("Playback failed:", error);
         });
       }
     }
 
-    // Update UI and MediaSession state
     if ("mediaSession" in navigator) {
       navigator.mediaSession.playbackState = "playing";
     }
     this.updatePlaybackState(true);
+  }
+
+  /**
+   * Load an AOD (on-demand) audio source and start playing it.
+   *
+   * This detaches HLS.js from the video element (pausing the live stream
+   * but keeping the HLS instance alive), then sets the video src directly
+   * to the episode MP3/M3U8 URL. The browser's native media handling
+   * takes over for the AOD file.
+   */
+  playAOD(src) {
+    if (!this.videoElement || !src) return;
+
+    console.log("Loading AOD source:", src);
+    this.currentMode = "aod";
+    this.metadataFetcher.stop();
+
+    // Stop HLS loading and detach from the video element.
+    // stopLoad() stops fetching segments. detachMedia() releases the element.
+    // We keep the HLS instance alive so we can reattach for live later.
+    if (typeof Hls !== "undefined" && window.hls) {
+      window.hls.stopLoad();
+      window.hls.detachMedia();
+    }
+
+    // Set the source directly — the browser handles MP3 natively.
+    this.videoElement.src = src;
+    this.videoElement.load();
+
+    const playPromise = this.videoElement.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.error("AOD playback failed:", error);
+      });
+    }
+
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "playing";
+    }
+    this.updatePlaybackState(true);
+  }
+
+  /**
+   * Switch back to the live stream.
+   * Reattaches HLS.js to the video element and reloads the live source.
+   */
+  switchToLive() {
+    if (!this.videoElement) return;
+
+    console.log("Switching back to live stream");
+    this.currentMode = "live";
+
+    // Reset fetcher's dedup so the next fetch always fires
+    this.metadataFetcher.lastMetadata = null;
+    this.metadataFetcher.start(3000);
+
+    // Remove the AOD src
+    this.videoElement.removeAttribute("src");
+    this.videoElement.load();
+
+    // Reattach HLS
+    if (typeof Hls !== "undefined" && window.hls) {
+      window.hls.attachMedia(this.videoElement);
+      window.hls.startLoad();
+    }
   }
 
   stop() {
@@ -530,7 +729,6 @@ class UnifiedPlayer {
       this.videoElement.pause();
     }
 
-    // Update UI and MediaSession state
     if ("mediaSession" in navigator) {
       navigator.mediaSession.playbackState = "paused";
     }
@@ -578,12 +776,23 @@ class UnifiedPlayer {
   }
 }
 
-// Initialize player
+// Initialize player (exposed globally so the router can call rebindPageUI)
 const player = new UnifiedPlayer();
+window.player = player;
 
-// Export functions for HTML buttons
+// Export functions for HTML buttons and the player module
 window.playAudio = () => player.play();
+window.playAOD = (src) => player.playAOD(src);
+window.switchToLive = () => player.switchToLive();
 window.stopAudio = () => player.stop();
 window.toggleComment = () => player.toggleComment();
 window.checkCommentHeight = () => player.checkCommentHeight();
 window.togglePlayback = () => player.togglePlayback();
+window.toggleLive = () => {
+  if (player.currentMode !== "live") {
+    player.switchToLive();
+    player.play();
+  } else {
+    player.togglePlayback();
+  }
+};
