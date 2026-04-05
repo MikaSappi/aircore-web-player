@@ -36,10 +36,7 @@
     {{ block "header scripts" . }}
     {{ end }}
     {{ $hlsJs := resources.Get "/js/hls.js" }}
-
-    <!-- NOTE!!! HLS IS ALREADY MINIFIED. -->
-
-    {{ $hlsMin := $hlsJs | fingerprint }}
+    {{ $hlsMin := $hlsJs | minify | fingerprint }}
     <script src="{{ $hlsMin.RelPermalink }}"></script>
     {{ $fhJs := resources.Get "/js/fh.js" }}
     {{ $fhMin := $fhJs | minify }}

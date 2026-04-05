@@ -453,9 +453,39 @@ class UnifiedPlayer {
         this.cdnFallback.reportSuccess();
       });
 
+      // Parse timed_id3 metadata from the text track HLS.js creates.
+      // When ID3 metadata is found, stop the HTTP polling fallback.
+      this.id3MetadataActive = false;
+      this.videoElement.textTracks.addEventListener("addtrack", (e) => {
+        const track = e.track;
+        if (track.kind === "metadata" && track.label === "id3") {
+          track.mode = "hidden";
+          track.addEventListener("cuechange", () => {
+            if (!track.activeCues || track.activeCues.length === 0) return;
+            const metadata = {};
+            for (const cue of track.activeCues) {
+              const v = cue.value;
+              if (!v) continue;
+              if (v.key === "TIT2") metadata.TITLE = v.data;
+              if (v.key === "TPE1") metadata.ARTIST = v.data;
+              if (v.key === "TALB") metadata.ALBUM = v.data;
+            }
+            if (metadata.TITLE || metadata.ARTIST) {
+              if (!this.id3MetadataActive) {
+                console.log("ID3 timed metadata detected, stopping HTTP metadata polling");
+                this.id3MetadataActive = true;
+                this.metadataFetcher.stop();
+              }
+              this.updateMetadata(metadata);
+            }
+          });
+        }
+      });
+
       // Parse EXT-X-DATERANGE metadata from Liquidsoap
       this.lastDateRangeId = null;
       window.hls.on(Hls.Events.LEVEL_UPDATED, (event, data) => {
+        if (this.id3MetadataActive) return;
         const dateRanges = data.details.dateRanges;
         if (!dateRanges) return;
 
@@ -709,7 +739,8 @@ class UnifiedPlayer {
     console.log("Switching back to live stream");
     this.currentMode = "live";
 
-    // Reset fetcher's dedup so the next fetch always fires
+    // Reset ID3 flag so we re-evaluate; start HTTP polling as fallback
+    this.id3MetadataActive = false;
     this.metadataFetcher.lastMetadata = null;
     this.metadataFetcher.start(3000);
 

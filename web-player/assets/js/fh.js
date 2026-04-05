@@ -19,6 +19,8 @@ window.addEventListener('DOMContentLoaded', function() {
   // Recalculate after viewport settles (PWA standalone mode initial load)
   setTimeout(updateFullHeight, 100);
   setTimeout(updateFullHeight, 300);
+  setTimeout(updateFullHeight, 500);
+  setTimeout(updateFullHeight, 1000);
   // Recalculate when any element is added/removed (e.g. cookie banner dismissed)
   new MutationObserver(updateFullHeight).observe(document.body, { childList: true, subtree: true });
 });
