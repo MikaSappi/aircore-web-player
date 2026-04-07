@@ -98,8 +98,16 @@
   let visibleCount = 0;
 
   function renderEpisodeCard(ep, index) {
+    const inPriority = window.PlayQueue && window.PlayQueue.isPriority(ep.hash);
+    const queueIcon = inPriority ? "nrk-media-playlist-added" : "nrk-media-playlist-add";
+    const queueLabel = inPriority ? "Jonossa" : "Lisää jonoon";
+
+    const isDownloaded = window.Downloads && window.Downloads.isDownloaded(ep.hash);
+    const dlIcon = isDownloaded ? "nrk-downloaded" : "nrk-download";
+    const dlLabel = isDownloaded ? "Ladattu" : "Lataa";
+
     return `
-      <div class="episode-card" data-index="${index}">
+      <div class="episode-card" data-index="${index}" data-hash="${ep.hash || ''}">
         <img
           class="episode-card__image"
           src="${ep.image}"
@@ -113,9 +121,17 @@
             ${ep.duration ? '<span class="episode-card__duration">' + formatDuration(ep.duration) + "</span>" : ""}
           </div>
         </div>
-        <button class="episode-card__play" data-index="${index}" aria-label="Play">
-          <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="18" height="18" />
-        </button>
+        <div class="episode-card__actions">
+          <button class="episode-card__download" data-index="${index}" aria-label="${dlLabel}" title="${dlLabel}">
+            <img src="/core-icons-svg/${dlIcon}.svg" alt="" width="18" height="18" />
+          </button>
+          <button class="episode-card__queue" data-index="${index}" aria-label="${queueLabel}" title="${queueLabel}">
+            <img src="/core-icons-svg/${queueIcon}.svg" alt="" width="20" height="20" />
+          </button>
+          <button class="episode-card__play" data-index="${index}" aria-label="Play">
+            <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="18" height="18" />
+          </button>
+        </div>
       </div>
     `;
   }
@@ -127,14 +143,71 @@
         e.stopPropagation();
         const index = parseInt(btn.dataset.index, 10);
         const ep = parsedEpisodes[index];
-        window.playerEvents.play({
-          type: "aod",
-          src: ep.audioUrl,
-          title: ep.title,
-          artist: feed.title,
-          image: ep.image,
-          feedUrl: "/feeds/" + feed.id + "/",
-        });
+        // Play this episode and queue the rest of the feed
+        if (window.PlayQueue) {
+          window.PlayQueue.playAllFrom(parsedEpisodes, index, feed.id, feed.title);
+        } else {
+          window.playerEvents.play({
+            type: "aod",
+            src: ep.audioUrl,
+            title: ep.title,
+            artist: feed.title,
+            image: ep.image,
+            feedUrl: "/feeds/" + feed.id + "/",
+          });
+        }
+      });
+    });
+
+    // Download buttons
+    container.querySelectorAll(".episode-card__download:not([data-bound])").forEach((btn) => {
+      btn.setAttribute("data-bound", "1");
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.dataset.index, 10);
+        const ep = parsedEpisodes[index];
+        if (!window.Downloads) return;
+
+        if (window.Downloads.isDownloaded(ep.hash)) {
+          window.Downloads.remove(ep.hash);
+          btn.querySelector("img").src = "/core-icons-svg/nrk-download.svg";
+          btn.setAttribute("aria-label", "Lataa");
+          btn.setAttribute("title", "Lataa");
+        } else {
+          window.Downloads.start(ep);
+          btn.querySelector("img").src = "/core-icons-svg/nrk-downloaded.svg";
+          btn.setAttribute("aria-label", "Ladattu");
+          btn.setAttribute("title", "Ladattu");
+        }
+      });
+    });
+
+    // Queue add buttons
+    container.querySelectorAll(".episode-card__queue:not([data-bound])").forEach((btn) => {
+      btn.setAttribute("data-bound", "1");
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.dataset.index, 10);
+        const ep = parsedEpisodes[index];
+        if (!window.PlayQueue) return;
+
+        if (window.PlayQueue.isPriority(ep.hash)) {
+          // Remove from priority queue
+          const hashes = window.PlayQueue.hashes();
+          const qIdx = hashes.indexOf(ep.hash);
+          if (qIdx >= 0) window.PlayQueue.removeAt(qIdx);
+          btn.querySelector("img").src = "/core-icons-svg/nrk-media-playlist-add.svg";
+          btn.setAttribute("aria-label", "Lisää jonoon");
+          btn.setAttribute("title", "Lisää jonoon");
+        } else {
+          // Enrich episode with feed info before adding
+          ep.feedTitle = feed.title;
+          ep.feedUrl = "/feeds/" + feed.id + "/";
+          window.PlayQueue.add(ep.hash);
+          btn.querySelector("img").src = "/core-icons-svg/nrk-media-playlist-added.svg";
+          btn.setAttribute("aria-label", "Jonossa");
+          btn.setAttribute("title", "Jonossa");
+        }
       });
     });
 
@@ -233,6 +306,7 @@
     detailPlayBtn.dataset.audioUrl = episode.audioUrl;
     detailPlayBtn.dataset.title = episode.title;
     detailPlayBtn.dataset.image = episode.image || "";
+    detailPlayBtn.dataset.hash = episode.hash || "";
 
     // Show detail, hide episode list, header, and search
     var header = document.querySelector('.feed-page__header');
@@ -263,7 +337,6 @@
 
   if (detailPlayBtn) {
     detailPlayBtn.addEventListener("click", () => {
-      // Fire a player event — the player bar picks this up. (hopefully)
       window.playerEvents.play({
         type: "aod",
         src: detailPlayBtn.dataset.audioUrl,
@@ -278,23 +351,56 @@
   // ── Fetch the RSS feed and render ──
 
   async function init() {
+    // 1. Render from cache immediately if available
+    if (window.EpisodeStore) {
+      const cached = window.EpisodeStore.load(feed.id);
+      if (cached && cached.episodes.length > 0) {
+        console.log("[FeedPage] Rendering from cache (" + cached.episodes.length + " episodes)");
+        episodes = cached.episodes;
+        renderEpisodes(episodes);
+        // Show cover from cache too
+        if (feedCover && episodes[0]?.image) {
+          feedCover.src = episodes[0].image;
+          feedCover.style.opacity = "1";
+        }
+      }
+    }
+
+    // 2. Fetch fresh data from RSS in background
     try {
       const response = await fetch(feed.feedUrl);
       const xmlText = await response.text();
       const result = parseRSSFeed(xmlText);
 
-      episodes = result.episodes;
+      // Enrich with feed metadata and save to store
+      var enriched = result.episodes;
+      if (window.EpisodeStore) {
+        // Add feed context to each episode (for queue resolution)
+        enriched.forEach(function (ep) {
+          ep.feedTitle = feed.title;
+          ep.feedUrl = "/feeds/" + feed.id + "/";
+        });
+        enriched = window.EpisodeStore.save(feed.id, enriched);
+      }
+
+      episodes = enriched;
 
       // Set the feed cover image
       if (feedCover) {
         feedCover.src = result.channelImage || "/img/r10-small-sq.png";
         feedCover.style.opacity = "1";
+        // Cache the cover image
+        if (window.EpisodeStore && result.channelImage) {
+          window.EpisodeStore.cacheImage(result.channelImage);
+        }
       }
 
+      // Re-render with fresh data
       renderEpisodes(episodes);
     } catch (err) {
       console.error("[FeedPage] Failed to load feed:", err);
-      if (loadingEl) {
+      // If we already rendered from cache, don't show error
+      if (episodes.length === 0 && loadingEl) {
         loadingEl.textContent = "Syötteen lataus epäonnistui.";
       }
     }

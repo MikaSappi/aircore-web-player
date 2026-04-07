@@ -21,10 +21,13 @@
       <div id="player-bar-artist" class="player-bar__artist"></div>
     </div>
 
-    {{/* ── Play/Stop toggle ── */}}
-    <button class="player-bar__button" aria-label="Play or stop audio">
+    {{/* ── Play/Pause/Stop toggle ── */}}
+    <button class="player-bar__button" aria-label="Toisto">
       <span id="player-bar-play">
         <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="28" height="28" />
+      </span>
+      <span id="player-bar-pause" class="hidden">
+        <img src="/core-icons-svg/nrk-media-pause.svg" alt="Pause" width="28" height="28" />
       </span>
       <span id="player-bar-stop" class="hidden">
         <img src="/core-icons-svg/nrk-media-stop.svg" alt="Stop" width="28" height="28" />
@@ -37,28 +40,79 @@
 <div id="player-expanded" class="player-expanded">
   <div class="player-expanded__inner">
     <button id="player-expanded-close" class="player-expanded__close">&times;</button>
-    <img id="player-expanded-image" class="player-expanded__image" src="" alt="" />
+    <img id="player-expanded-image" class="player-expanded__image" src="" alt="Kansikuva" />
     <div class="player-expanded__meta">
       <span id="player-expanded-mode" class="player-expanded__mode"></span>
       <a id="player-expanded-title" class="player-expanded__title" href="#">Title</a>
       <div id="player-expanded-artist" class="player-expanded__artist"></div>
     </div>
     <div id="player-expanded-progress-wrap" class="player-expanded__progress-wrap">
-      <input id="player-expanded-seek" class="player-expanded__seek" type="range" min="0" max="100" value="0" step="0.1" />
+      <input id="player-expanded-seek" class="player-expanded__seek" type="range" min="0" max="100" value="0" step="0.1" aria-label="Kelaus" />
       <div class="player-expanded__times">
         <span id="player-expanded-current">0:00</span>
         <span id="player-expanded-duration">0:00</span>
       </div>
     </div>
     <div class="player-expanded__controls">
+      <button id="player-expanded-prev" class="player-expanded__skip-btn" aria-label="Edellinen">
+        <img src="/core-icons-svg/nrk-media-previous.svg" alt="Previous" width="28" height="28" />
+      </button>
       <button id="player-expanded-play" class="player-expanded__play-btn" aria-label="Play or stop">
         <span id="player-expanded-play-icon">
           <img src="/core-icons-svg/nrk-media-play.svg" alt="Play" width="48" height="48" />
+        </span>
+        <span id="player-expanded-pause-icon" class="hidden">
+          <img src="/core-icons-svg/nrk-media-pause.svg" alt="Pause" width="48" height="48" />
         </span>
         <span id="player-expanded-stop-icon" class="hidden">
           <img src="/core-icons-svg/nrk-media-stop.svg" alt="Stop" width="48" height="48" />
         </span>
       </button>
+      <button id="player-expanded-next" class="player-expanded__skip-btn" aria-label="Seuraava">
+        <img src="/core-icons-svg/nrk-media-next.svg" alt="Next" width="28" height="28" />
+      </button>
+    </div>
+    <div class="player-expanded__bottom-row">
+      <button id="player-expanded-queue-btn" class="player-expanded__queue-btn" aria-label="Jono">
+        <img src="/core-icons-svg/nrk-media-playlist.svg" alt="Queue" width="22" height="22" />
+        <span id="player-expanded-queue-count" class="player-expanded__queue-count hidden">0</span>
+      </button>
+      <button id="player-expanded-sleep-btn" class="player-expanded__sleep-btn" aria-label="Uniajastin">
+        <img src="/core-icons-svg/nrk-alarm-clock.svg" alt="Sleep" width="22" height="22" />
+        <span id="player-expanded-sleep-label" class="player-expanded__sleep-label hidden"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+{{/* ── Sleep timer picker ── */}}
+<div id="sleep-picker" class="sleep-picker">
+  <div class="sleep-picker__inner">
+    <div class="sleep-picker__header">
+      <span class="sleep-picker__title">Uniajastin</span>
+      <button id="sleep-picker-close" class="sleep-picker__close">&times;</button>
+    </div>
+    <div class="sleep-picker__presets" id="sleep-picker-presets">
+      <button class="sleep-picker__option" data-minutes="15">15 min</button>
+      <button class="sleep-picker__option" data-minutes="30">30 min</button>
+      <button class="sleep-picker__option" data-minutes="45">45 min</button>
+      <button class="sleep-picker__option" data-minutes="60">1 h</button>
+      <button class="sleep-picker__option" data-minutes="90">1 h 30 min</button>
+      <button class="sleep-picker__option" data-minutes="120">2 h</button>
+      <button class="sleep-picker__option" data-mode="episode-end">Jakson lopussa</button>
+    </div>
+    <div class="sleep-picker__custom">
+      <label class="sleep-picker__custom-label" for="sleep-picker-custom-input">Oma aika (min)</label>
+      <div class="sleep-picker__custom-row">
+        <input id="sleep-picker-custom-input" class="sleep-picker__custom-input" type="number" min="1" max="720" placeholder="esim. 25" />
+        <button id="sleep-picker-custom-btn" class="sleep-picker__custom-btn">Aseta</button>
+      </div>
+    </div>
+    <div id="sleep-picker-active" class="sleep-picker__active hidden">
+      <div class="sleep-picker__active-info">
+        <span id="sleep-picker-remaining"></span>
+      </div>
+      <button id="sleep-picker-cancel" class="sleep-picker__cancel-btn">Peruuta ajastin</button>
     </div>
   </div>
 </div>

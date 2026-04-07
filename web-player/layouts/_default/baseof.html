@@ -16,9 +16,18 @@
 
     <!-- OG -->
     <meta property="og:image" content="{{ $pngIcon.RelPermalink }}" />
-    <meta property="og:title" content="{{ .Title }}" />
+    <meta property="og:title" content="{{ .Title }} | {{ .Site.Title }}" />
+    <meta property="og:description" content="{{ .Description }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ .Permalink }}" />
+    <meta property="og:locale" content="fi_FI" />
+    <meta property="og:site_name" content="{{ .Site.Title }}" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{{ .Title }} | {{ .Site.Title }}" />
+    <meta name="twitter:description" content="{{ .Description }}" />
+    <meta name="twitter:image" content="{{ $pngIcon.RelPermalink }}" />
 
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#44319c">
@@ -33,11 +42,11 @@
     {{ $inline := slice $styles $playerCSS $feedsCSS | resources.Concat "inline-bundled.css" | minify | fingerprint }}
 
     <style>{{ $inline.Content | safeCSS }}</style>
+
     {{ block "header scripts" . }}
     {{ end }}
-    {{ $hlsJs := resources.Get "/js/hls.js" }}
-    {{ $hlsMin := $hlsJs | minify | fingerprint }}
-    <script src="{{ $hlsMin.RelPermalink }}"></script>
+
+    <script src="/js/hls.min.js"></script>
     {{ $fhJs := resources.Get "/js/fh.js" }}
     {{ $fhMin := $fhJs | minify }}
     <script src="{{ $fhMin.RelPermalink }}"></script>
@@ -52,9 +61,9 @@
 
     {{/* This is the only part that gets swapped during SPA navigation.
          Everything outside this div persists: navbar, audio, player bar. */}}
-    <div id="app-content">
+    <main id="app-content">
       {{ block "main" . }}{{ end }}
-    </div>
+    </main>
 
     <!-- Schedule overlay (outside app-content so it persists across SPA navigation) -->
     <div id="guide-overlay" class="guide-overlay">
@@ -78,16 +87,47 @@
       </div>
     </div>
 
+    {{/* Queue overlay — persistent, outside app-content */}}
+    <div id="queue-overlay" class="queue-overlay">
+      <div class="queue-overlay__header">
+        <span class="queue-overlay__title">Jono</span>
+        <button id="queue-overlay-close" class="queue-overlay__close">&times;</button>
+      </div>
+      <div class="queue-overlay__actions">
+        <button id="queue-clear-btn" class="queue-overlay__clear-btn">Tyhjennä jono</button>
+      </div>
+      <div id="queue-list" class="queue-overlay__list"></div>
+    </div>
+
     {{ partial "menubar.html" . }}
     {{ partial "cookie.html" . }}
     {{ partial "player-module.html" . }}
     {{ partial "footer.html" . }}
+
+    {{ $storeJs := resources.Get "/js/episode-store.js" }}
+    {{ $storeMin := $storeJs | minify | fingerprint }}
+    <script src="{{ $storeMin.RelPermalink }}"></script>
+    {{ $queueJs := resources.Get "/js/queue.js" }}
+    {{ $queueMin := $queueJs | minify | fingerprint }}
+    <script src="{{ $queueMin.RelPermalink }}"></script>
+    {{ $downloadJs := resources.Get "/js/download.js" }}
+    {{ $downloadMin := $downloadJs | minify | fingerprint }}
+    <script src="{{ $downloadMin.RelPermalink }}"></script>
     {{ $playerJs := resources.Get "/js/player.js" }}
     {{ $playerMin :=  $playerJs | minify | fingerprint }}
     <script src="{{ $playerMin.RelPermalink }}"></script>
     {{ $playerModuleJs := resources.Get "/js/player-module.js" }}
     {{ $playerModuleMin := $playerModuleJs | minify | fingerprint }}
     <script src="{{ $playerModuleMin.RelPermalink }}"></script>
+    {{ $queueUiJs := resources.Get "/js/queue-ui.js" }}
+    {{ $queueUiMin := $queueUiJs | minify | fingerprint }}
+    <script src="{{ $queueUiMin.RelPermalink }}"></script>
+    {{ $sleepJs := resources.Get "/js/sleep-timer.js" }}
+    {{ $sleepMin := $sleepJs | minify | fingerprint }}
+    <script src="{{ $sleepMin.RelPermalink }}"></script>
+    {{ $sleepUiJs := resources.Get "/js/sleep-timer-ui.js" }}
+    {{ $sleepUiMin := $sleepUiJs | minify | fingerprint }}
+    <script src="{{ $sleepUiMin.RelPermalink }}"></script>
     {{ $routerJs := resources.Get "/js/router.js" }}
     {{ $routerMin := $routerJs | minify | fingerprint }}
     <script src="{{ $routerMin.RelPermalink }}"></script>

@@ -28,6 +28,7 @@ class PlayerBar {
     return {
       bar:        document.getElementById("player-bar"),
       playBtn:    document.getElementById("player-bar-play"),
+      pauseBtn:   document.getElementById("player-bar-pause"),
       stopBtn:    document.getElementById("player-bar-stop"),
       title:      document.getElementById("player-bar-title"),
       artist:     document.getElementById("player-bar-artist"),
@@ -46,15 +47,23 @@ class PlayerBar {
       expDuration:    document.getElementById("player-expanded-duration"),
       expPlayBtn:     document.getElementById("player-expanded-play"),
       expPlayIcon:    document.getElementById("player-expanded-play-icon"),
+      expPauseIcon:   document.getElementById("player-expanded-pause-icon"),
       expStopIcon:    document.getElementById("player-expanded-stop-icon"),
       expMode:        document.getElementById("player-expanded-mode"),
       expProgressWrap: document.getElementById("player-expanded-progress-wrap"),
+      expPrev:        document.getElementById("player-expanded-prev"),
+      expNext:        document.getElementById("player-expanded-next"),
+      expQueueBtn:    document.getElementById("player-expanded-queue-btn"),
+      expQueueCount:  document.getElementById("player-expanded-queue-count"),
     };
   }
 
   _bindUIEvents() {
     if (this.elements.playBtn) {
       this.elements.playBtn.addEventListener("click", (e) => { e.stopPropagation(); this.toggle(); });
+    }
+    if (this.elements.pauseBtn) {
+      this.elements.pauseBtn.addEventListener("click", (e) => { e.stopPropagation(); this.toggle(); });
     }
     if (this.elements.stopBtn) {
       this.elements.stopBtn.addEventListener("click", (e) => { e.stopPropagation(); this.toggle(); });
@@ -77,6 +86,25 @@ class PlayerBar {
     }
     if (this.elements.expSeek) {
       this.elements.expSeek.addEventListener("input", (e) => this._onSeek(e));
+    }
+
+    // Next/prev buttons
+    if (this.elements.expPrev) {
+      this.elements.expPrev.addEventListener("click", () => {
+        if (window.PlayQueue) window.PlayQueue.previous();
+      });
+    }
+    if (this.elements.expNext) {
+      this.elements.expNext.addEventListener("click", () => {
+        if (window.PlayQueue) window.PlayQueue.next();
+      });
+    }
+
+    // Queue button opens queue overlay
+    if (this.elements.expQueueBtn) {
+      this.elements.expQueueBtn.addEventListener("click", () => {
+        document.dispatchEvent(new CustomEvent("queue:toggle-ui"));
+      });
     }
 
     // Escape closes expanded view
@@ -195,6 +223,27 @@ class PlayerBar {
     document.addEventListener("player:metadata", (event) => {
       this._handleMetadata(event.detail);
     });
+
+    // Queue changes — update badge count
+    document.addEventListener("queue:changed", () => {
+      this._updateQueueBadge();
+    });
+
+    // Sleep timer stopped playback — fully clear the player bar
+    document.addEventListener("player:clear", () => {
+      this.state.mode = "idle";
+      this.state.isPlaying = false;
+      this.state.title = "";
+      this.state.artist = "";
+      this.state.image = null;
+      this.state.src = null;
+      this.state.feedUrl = null;
+      this._closeExpanded();
+      if (this.elements.bar) {
+        this.elements.bar.classList.remove("player-bar--visible");
+      }
+      this._render();
+    });
   }
 
 
@@ -270,9 +319,15 @@ class PlayerBar {
 
   toggle() {
     if (this.state.isPlaying) {
-
       document.dispatchEvent(new CustomEvent("player:stop"));
+    } else if (this.state.mode === "aod") {
+      // AOD resume: just call play() on the video element — don't reload the source.
+      // togglePlayback() does videoElement.play() which resumes from current position.
+      if (typeof window.togglePlayback === "function") {
+        window.togglePlayback();
+      }
     } else {
+      // Live: full play request
       document.dispatchEvent(new CustomEvent("player:play", {
         detail: {
           type: this.state.mode || "live",
@@ -299,14 +354,24 @@ class PlayerBar {
     if (title)  title.textContent  = this.state.title;
     if (artist) artist.textContent = this.state.artist;
 
-    // Update play/stop button visibility
-    if (playBtn && stopBtn) {
+    // Update play/pause/stop button visibility
+    // AOD: play/pause toggle. Live: play/stop toggle.
+    if (playBtn) {
+      var isAOD = this.state.mode === "aod";
+      var pauseBtn = this.elements.pauseBtn;
+
+      playBtn.classList.add("hidden");
+      if (pauseBtn) pauseBtn.classList.add("hidden");
+      stopBtn.classList.add("hidden");
+
       if (this.state.isPlaying) {
-        playBtn.classList.add("hidden");
-        stopBtn.classList.remove("hidden");
+        if (isAOD && pauseBtn) {
+          pauseBtn.classList.remove("hidden");
+        } else {
+          stopBtn.classList.remove("hidden");
+        }
       } else {
         playBtn.classList.remove("hidden");
-        stopBtn.classList.add("hidden");
       }
     }
 
@@ -430,15 +495,42 @@ class PlayerBar {
       }
     }
 
-    // Play/stop icons
+    // Play/pause/stop icons — AOD gets pause, live gets stop
+    var expPauseIcon = this.elements.expPauseIcon;
     if (expPlayIcon && expStopIcon) {
+      var isAOD = this.state.mode === "aod";
+
+      expPlayIcon.classList.add("hidden");
+      if (expPauseIcon) expPauseIcon.classList.add("hidden");
+      expStopIcon.classList.add("hidden");
+
       if (this.state.isPlaying) {
-        expPlayIcon.classList.add("hidden");
-        expStopIcon.classList.remove("hidden");
+        if (isAOD && expPauseIcon) {
+          expPauseIcon.classList.remove("hidden");
+        } else {
+          expStopIcon.classList.remove("hidden");
+        }
       } else {
         expPlayIcon.classList.remove("hidden");
-        expStopIcon.classList.add("hidden");
       }
+    }
+
+    // Skip buttons and queue button: hidden entirely for live radio
+    var isLive = this.state.mode === "live";
+    var queueLen = window.PlayQueue ? window.PlayQueue.length() : 0;
+    var curIdx = window.PlayQueue ? window.PlayQueue.currentIndex() : -1;
+    var showPrev = !isLive && curIdx > 0;
+    var showNext = !isLive && queueLen > 0 && (curIdx === -1 || curIdx < queueLen - 1);
+    if (this.elements.expPrev) {
+      this.elements.expPrev.style.display = isLive ? "none" : "";
+      this.elements.expPrev.style.visibility = showPrev ? "visible" : "hidden";
+    }
+    if (this.elements.expNext) {
+      this.elements.expNext.style.display = isLive ? "none" : "";
+      this.elements.expNext.style.visibility = showNext ? "visible" : "hidden";
+    }
+    if (this.elements.expQueueBtn) {
+      this.elements.expQueueBtn.style.display = isLive ? "none" : "";
     }
 
     // Mode badge and progress bar visibility
@@ -456,6 +548,19 @@ class PlayerBar {
     if (this.elements.expProgressWrap) {
       this.elements.expProgressWrap.style.display = this.state.mode === "aod" ? "" : "none";
     }
+  }
+  _updateQueueBadge() {
+    var count = window.PlayQueue ? window.PlayQueue.length() : 0;
+    if (this.elements.expQueueCount) {
+      this.elements.expQueueCount.textContent = String(count);
+      if (count > 0) {
+        this.elements.expQueueCount.classList.remove("hidden");
+      } else {
+        this.elements.expQueueCount.classList.add("hidden");
+      }
+    }
+    // Also re-render skip buttons if expanded
+    if (this._isExpanded) this._renderExpanded();
   }
 }
 

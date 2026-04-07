@@ -234,7 +234,7 @@ class ArtworkFetcher {
       this._cache[query] = null;
       return null;
     } catch (e) {
-      console.error("Artwork fetch failed:", e);
+      // Silently fail — Deezer JSONP is best-effort
       return null;
     }
   }
@@ -272,9 +272,21 @@ class UnifiedPlayer {
 
     // Add event listeners for ended and error events on persistent elements
     if (this.videoElement) {
-      this.videoElement.addEventListener("ended", () =>
-        this.updatePlaybackState(false),
-      );
+      this.videoElement.addEventListener("ended", () => {
+        // Sleep timer "episode end" — stop everything, no auto-advance, clear player
+        if (window.SleepTimer && window.SleepTimer.isActive()) {
+          window.SleepTimer.cancel();
+          this.updatePlaybackState(false);
+          document.dispatchEvent(new CustomEvent("player:clear"));
+          return;
+        }
+        // Try to advance the queue before marking as stopped
+        if (this.currentMode === "aod" && window.PlayQueue) {
+          var next = window.PlayQueue.next();
+          if (next) return; // queue advanced, don't mark as stopped
+        }
+        this.updatePlaybackState(false);
+      });
       this.videoElement.addEventListener("error", () =>
         this.updatePlaybackState(false),
       );

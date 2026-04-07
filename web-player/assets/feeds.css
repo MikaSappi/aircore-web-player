@@ -216,6 +216,41 @@
     color: var(--base-light);
 }
 
+/* ── Episode card actions (play + queue buttons) ── */
+
+.episode-card__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.episode-card__queue,
+.episode-card__download {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: opacity 0.15s ease;
+}
+
+.episode-card__queue img,
+.episode-card__download img {
+    filter: invert(1);
+    opacity: 0.5;
+}
+
+.episode-card__queue:hover img,
+.episode-card__download:hover img {
+    opacity: 1;
+}
+
 /* ── Load more button ── */
 
 .episode-load-more {

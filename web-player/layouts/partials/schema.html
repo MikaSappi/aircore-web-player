@@ -1,0 +1,89 @@
+{{- /* JSON-LD structured data — auto-generated per page type */ -}}
+
+{{- if .IsHome -}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "{{ .Site.BaseURL }}#organization",
+      "name": "Radio 10",
+      "url": "{{ .Site.BaseURL }}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ .Site.BaseURL }}img/r10-small-sq.png"
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "{{ .Site.BaseURL }}#website",
+      "name": "{{ .Site.Title }}",
+      "url": "{{ .Site.BaseURL }}",
+      "publisher": { "@id": "{{ .Site.BaseURL }}#organization" }
+    },
+    {
+      "@type": "RadioBroadcastService",
+      "name": "Radio 10",
+      "url": "{{ .Site.BaseURL }}",
+      "broadcastDisplayName": "Radio 10",
+      "broadcaster": { "@id": "{{ .Site.BaseURL }}#organization" },
+      "description": "{{ .Description }}"
+    }
+  ]
+}
+</script>
+
+{{- else if and .Parent (not .Parent.IsHome) -}}
+{{- /* Individual feed page — PodcastSeries schema */ -}}
+{{- $feedId := .Params.feed_id -}}
+{{- $feed := dict -}}
+{{- range .Site.Data.feeds.feeds -}}
+  {{- if eq .id $feedId -}}
+    {{- $feed = . -}}
+  {{- end -}}
+{{- end -}}
+{{- if $feed.id -}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "PodcastSeries",
+  "name": "{{ $feed.title }}",
+  "description": "{{ $feed.description }}",
+  "url": "{{ .Permalink }}",
+  "webFeed": "{{ $feed.feedUrl }}",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Radio 10",
+    "url": "{{ .Site.BaseURL }}"
+  }
+}
+</script>
+{{- end -}}
+
+{{- else if and .Parent .Parent.IsHome -}}
+{{- /* Feeds index page — ItemList of podcasts */ -}}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ .Title }}",
+  "description": "{{ .Description }}",
+  "url": "{{ .Permalink }}",
+  "mainEntity": {
+    "@type": "ItemList",
+    "itemListElement": [
+      {{- range $i, $feed := .Site.Data.feeds.feeds -}}
+      {{- if $i }},{{ end -}}
+      {
+        "@type": "ListItem",
+        "position": {{ add $i 1 }},
+        "url": "{{ $.Site.BaseURL }}feeds/{{ $feed.id }}/",
+        "name": "{{ $feed.title }}"
+      }
+      {{- end -}}
+    ]
+  }
+}
+</script>
+{{- end -}}
