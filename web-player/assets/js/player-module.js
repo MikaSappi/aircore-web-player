@@ -258,7 +258,7 @@ class PlayerBar {
     // Route to the correct playback method based on content type.
     if (type === "aod" && src) {
       if (typeof window.playAOD === "function") {
-        window.playAOD(src);
+        window.playAOD(src, { title, artist, image });
       }
     } else {
       // Live: if we were playing AOD, switch back to the live HLS stream first
