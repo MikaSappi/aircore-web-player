@@ -5,7 +5,7 @@ function detectPlaybackMethod() {
 
 class SmartCDNFallback {
   constructor() {
-    this.primaryCDN = "https://media-cdn.collinsgroup.fi";
+    this.primaryCDN = "https://media-cdn.collinsgroup.fi/hls";
     this.fallbackOrigin = "https://radio.collinsgroup.fi/hls";
     this.usingFallback = false;
     this.failureCount = 0;
@@ -690,7 +690,12 @@ class UnifiedPlayer {
       const playPromise = this.videoElement.play();
       if (playPromise !== undefined) {
         playPromise.catch((error) => {
-          console.error("Playback failed:", error);
+          console.error("Playback failed, retrying on canplay:", error);
+          this.videoElement.addEventListener("canplay", () => {
+            this.videoElement.play().catch((e) => {
+              console.error("Playback retry also failed:", e);
+            });
+          }, { once: true });
         });
       }
     }
@@ -709,7 +714,7 @@ class UnifiedPlayer {
    * to the episode MP3/M3U8 URL. The browser's native media handling
    * takes over for the AOD file.
    */
-  playAOD(src) {
+  playAOD(src, meta) {
     if (!this.videoElement || !src) return;
 
     console.log("Loading AOD source:", src);
@@ -725,19 +730,40 @@ class UnifiedPlayer {
     }
 
     // Set the source directly — the browser handles MP3 natively.
+    // Don't call load() explicitly — setting src already triggers loading,
+    // and the extra load() on mobile Safari resets state causing play() to fail.
     this.videoElement.src = src;
-    this.videoElement.load();
 
     const playPromise = this.videoElement.play();
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.error("AOD playback failed:", error);
+        console.error("AOD playback failed, retrying on canplay:", error);
+        this.videoElement.addEventListener("canplay", () => {
+          this.videoElement.play().catch((e) => {
+            console.error("AOD retry also failed:", e);
+          });
+        }, { once: true });
       });
     }
 
-    if ("mediaSession" in navigator) {
+    // Update MediaSession with AOD episode metadata
+    if ("mediaSession" in navigator && meta) {
+      var artwork = meta.image ? [{ src: meta.image, sizes: "600x600", type: "image/jpeg" }] : [];
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: meta.title || "Episode",
+        artist: meta.artist || "",
+        artwork: artwork,
+      });
       navigator.mediaSession.playbackState = "playing";
     }
+
+    // Store metadata so updatePlaybackState can include it
+    this.lastMetadata = {
+      TITLE: meta?.title || "",
+      ARTIST: meta?.artist || "",
+      image: meta?.image || null,
+    };
+
     this.updatePlaybackState(true);
   }
 
@@ -825,7 +851,7 @@ window.player = player;
 
 // Export functions for HTML buttons and the player module
 window.playAudio = () => player.play();
-window.playAOD = (src) => player.playAOD(src);
+window.playAOD = (src, meta) => player.playAOD(src, meta);
 window.switchToLive = () => player.switchToLive();
 window.stopAudio = () => player.stop();
 window.toggleComment = () => player.toggleComment();
