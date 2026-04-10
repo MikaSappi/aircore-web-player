@@ -3,169 +3,8 @@ function detectPlaybackMethod() {
   return "hls";
 }
 
-class SmartCDNFallback {
-  constructor() {
-    this.primaryCDN = "https://media-cdn.collinsgroup.fi/hls";
-    this.fallbackOrigin = "https://radio.collinsgroup.fi/hls";
-    this.usingFallback = false;
-    this.failureCount = 0;
-    this.lastFailureTime = 0;
-    this.cooldownPeriod = 300000;
-  }
-
-  resolveURL(originalURL) {
-    // If we're in fallback mode and cooldown hasn't expired, use origin
-    if (
-      this.usingFallback &&
-      Date.now() - this.lastFailureTime < this.cooldownPeriod
-    ) {
-      return originalURL.replace(this.primaryCDN, this.fallbackOrigin);
-    }
-
-    // If cooldown expired, try CDN again
-    if (
-      this.usingFallback &&
-      Date.now() - this.lastFailureTime >= this.cooldownPeriod
-    ) {
-      console.log("CDN cooldown expired, attempting to use CDN again");
-      this.usingFallback = false;
-      this.failureCount = 0;
-    }
-
-    // Use primary CDN
-    return originalURL;
-  }
-
-  // Called when a request fails completely (not just slow)
-  reportFailure(url, error) {
-    // Only count complete failures, not slow responses
-    if (this.isCompleteFailure(error)) {
-      this.failureCount++;
-      console.warn(`CDN failure #${this.failureCount} for ${url}:`, error);
-
-      // Switch to fallback after 2 consecutive complete failures
-      if (this.failureCount >= 2) {
-        console.error("CDN failing completely, switching to origin fallback");
-        this.usingFallback = true;
-        this.lastFailureTime = Date.now();
-      }
-    }
-  }
-
-  // Only treat these as real failures worth failing over for
-  isCompleteFailure(error) {
-    return (
-      error.type === "NetworkError" ||
-      error.code === "ENOTFOUND" ||
-      error.message.includes("Failed to fetch") ||
-      error.status === 0 ||
-      !error.status // Complete connection failure
-    );
-  }
-
-  // Reset failure count on successful requests
-  reportSuccess() {
-    if (this.failureCount > 0) {
-      console.log("CDN request successful, resetting failure count");
-      this.failureCount = 0;
-    }
-  }
-
-  getStatus() {
-    return {
-      usingFallback: this.usingFallback,
-      failureCount: this.failureCount,
-      timeUntilRetry: this.usingFallback ?
-        Math.max(0, this.cooldownPeriod - (Date.now() - this.lastFailureTime)) :
-        0,
-    };
-  }
 }
 
-class A26MetadataFetcher {
-  constructor(metadataUrl, options = {}) {
-    this.metadataUrl = metadataUrl;
-    this.onMetadata = options.onMetadata || (() => {});
-    this.intervalId = null;
-    this.lastMetadata = null;
-  }
-
-  start(intervalMs = 10000) {
-    if (this.intervalId) return;
-
-    // Fetch immediately
-    this.fetchMetadata();
-
-    // Then set up interval
-    this.intervalId = setInterval(() => {
-      this.fetchMetadata();
-    }, intervalMs);
-  }
-
-  stop() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
-    }
-  }
-
-  // Convert array of arrays format to object
-  parseMetadataArray(metadataArray) {
-    if (!Array.isArray(metadataArray)) {
-      return {};
-    }
-
-    const metadata = {};
-    metadataArray.forEach(([key, value]) => {
-      if (key && value !== undefined) {
-        metadata[key] = value;
-      }
-    });
-
-    // Handle artist field mapping - check for artist first, then albumartist as fallback
-    if (!metadata.artist && metadata.albumartist) {
-      metadata.artist = metadata.albumartist;
-    }
-
-    return metadata;
-  }
-
-  async fetchMetadata() {
-    try {
-      const response = await fetch(this.metadataUrl, { referrerPolicy: 'no-referrer' });
-      const data = await response.json();
-
-      // Parse the array format from A26
-      const parsedMetadata = this.parseMetadataArray(data);
-
-      // Only proceed if we have artist and title
-      if (parsedMetadata.artist && parsedMetadata.title) {
-        // Create metadata object in expected format
-        const metadata = {
-          ARTIST: parsedMetadata.artist,
-          TITLE: parsedMetadata.title,
-          StreamTitle: `${parsedMetadata.artist} - ${parsedMetadata.title}`,
-        };
-
-        // Add image if present
-        if (parsedMetadata.image) {
-          metadata.image = parsedMetadata.image;
-        }
-
-        // Only send if metadata changed
-        const metadataString = JSON.stringify(metadata);
-        if (metadataString !== this.lastMetadata) {
-          this.lastMetadata = metadataString;
-          this.onMetadata(metadata);
-        }
-      } else {
-        console.log("No artist/title found in metadata");
-      }
-    } catch (error) {
-      console.error("Error fetching metadata:", error);
-    }
-  }
-}
 
 class ArtworkFetcher {
   constructor() {
@@ -247,23 +86,12 @@ class UnifiedPlayer {
     this.hlsPlayer = null;
     this.lastMetadata = null;
     this.isPlaying = false;
-    this.metadataInterval = null;
 
     this.initializeMediaSession();
 
     this.artworkFetcher = new ArtworkFetcher();
 
-    // Initialize metadata fetcher with new endpoint
-    this.metadataFetcher = new A26MetadataFetcher(
-      "https://media-cdn.collinsgroup.fi/metadata", {
-        onMetadata: (metadata) => this.updateMetadata(metadata),
-      },
-    );
-
     this.initializePlayer();
-
-    // Start metadata fetching immediately on page load
-    this.metadataFetcher.start(3000);
 
     // Bind page-specific UI elements (play/stop button on home page).
     // These live inside #app-content and may be swapped out by the router,
@@ -338,11 +166,6 @@ class UnifiedPlayer {
         image: this.lastMetadata?.image || null,
       },
     }));
-
-    // Ensure metadata fetching stays running (only for live)
-    if (this.currentMode === "live") {
-      this.metadataFetcher.start(3000);
-    }
   }
 
   initializeMediaSession() {
@@ -364,10 +187,10 @@ class UnifiedPlayer {
   }
 
   initializeHLSPlayer() {
-    console.log("Initializing HLS player with smart CDN fallback");
+    console.log("Initializing HLS player");
 
     if (!this.videoElement) {
-      console.error("No video element found for HLS playbook");
+      console.error("No video element found for HLS playback");
       return;
     }
 
@@ -376,12 +199,8 @@ class UnifiedPlayer {
     this.videoElement.setAttribute("webkit-playsinline", "");
     this.videoElement.setAttribute("x-webkit-airplay", "allow");
 
-    // Initialize smart fallback system
-    this.cdnFallback = new SmartCDNFallback();
-
-    // Force HLS.js for better control
     if (typeof Hls !== "undefined" && Hls.isSupported()) {
-      console.log("Using HLS.js with smart CDN fallback");
+      console.log("Using HLS.js");
 
       if (window.hls) {
         window.hls.destroy();
@@ -406,32 +225,15 @@ class UnifiedPlayer {
         fragLoadingMaxRetryTimeout: 2000,
       });
 
-      // Load source with smart URL resolution
-      const masterPlaylistURL = this.cdnFallback.resolveURL(
-        this.cdnFallback.primaryCDN + "/stream.m3u8",
-      );
+      const masterPlaylistURL = "https://media-cdn.collinsgroup.fi/hls/stream.m3u8";
       console.log("Loading playlist:", masterPlaylistURL);
       window.hls.loadSource(masterPlaylistURL);
       window.hls.attachMedia(this.videoElement);
 
-      // Enhanced error handling with fallback logic
       window.hls.on(Hls.Events.ERROR, (event, data) => {
         console.error("HLS Error:", data);
 
-        // Report failure to fallback system
         if (data.fatal) {
-          this.cdnFallback.reportFailure(data.url || "unknown", data);
-
-          // Check if we should switch to fallback
-          const status = this.cdnFallback.getStatus();
-          if (status.usingFallback) {
-            console.log("Switching to fallback due to failures, reloading...");
-            const fallbackURL = this.cdnFallback.resolveURL(
-              "https://media-cdn.collinsgroup.fi/stream.m3u8",
-            );
-            window.hls.loadSource(fallbackURL);
-          }
-
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.log("Fatal network error, attempting recovery...");
@@ -454,19 +256,12 @@ class UnifiedPlayer {
         }
       });
 
-      // Report successes to reset failure counter
       window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log("HLS manifest parsed successfully");
-        this.cdnFallback.reportSuccess();
         window.hls.startLoad();
       });
 
-      window.hls.on(Hls.Events.FRAG_LOADED, () => {
-        this.cdnFallback.reportSuccess();
-      });
-
       // Parse timed_id3 metadata from the text track HLS.js creates.
-      // When ID3 metadata is found, stop the HTTP polling fallback.
       this.id3MetadataActive = false;
       this.videoElement.textTracks.addEventListener("addtrack", (e) => {
         const track = e.track;
@@ -484,9 +279,8 @@ class UnifiedPlayer {
             }
             if (metadata.TITLE || metadata.ARTIST) {
               if (!this.id3MetadataActive) {
-                console.log("ID3 timed metadata detected, stopping HTTP metadata polling");
+                console.log("ID3 timed metadata detected");
                 this.id3MetadataActive = true;
-                this.metadataFetcher.stop();
               }
               this.updateMetadata(metadata);
             }
@@ -528,17 +322,7 @@ class UnifiedPlayer {
         }
       });
 
-      // Status monitoring for debugging
-      this.fallbackMonitor = setInterval(() => {
-        const status = this.cdnFallback.getStatus();
-        if (status.usingFallback) {
-          console.log(
-            `Fallback active. Retry CDN in ${Math.round(status.timeUntilRetry / 1000)}s`,
-          );
-        }
-      }, 30000);
-
-      console.log("Smart HLS with CDN fallback initialized");
+      console.log("HLS player initialized");
     } else {
       console.error("HLS.js is not supported in this browser");
     }
@@ -719,7 +503,6 @@ class UnifiedPlayer {
 
     console.log("Loading AOD source:", src);
     this.currentMode = "aod";
-    this.metadataFetcher.stop();
 
     // Stop HLS loading and detach from the video element.
     // stopLoad() stops fetching segments. detachMedia() releases the element.
@@ -777,10 +560,8 @@ class UnifiedPlayer {
     console.log("Switching back to live stream");
     this.currentMode = "live";
 
-    // Reset ID3 flag so we re-evaluate; start HTTP polling as fallback
+    // Reset ID3 flag so we re-evaluate on the new stream
     this.id3MetadataActive = false;
-    this.metadataFetcher.lastMetadata = null;
-    this.metadataFetcher.start(3000);
 
     // Remove the AOD src
     this.videoElement.removeAttribute("src");
