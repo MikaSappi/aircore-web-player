@@ -222,7 +222,7 @@ class UnifiedPlayer {
         fragLoadingMaxRetryTimeout: 2000,
       });
 
-      const masterPlaylistURL = "https://media-cdn.collinsgroup.fi/hls/stream.m3u8";
+      const masterPlaylistURL = "https://media.radio10.fi/hls/stream.m3u8";
       console.log("Loading playlist:", masterPlaylistURL);
       window.hls.loadSource(masterPlaylistURL);
       window.hls.attachMedia(this.videoElement);
@@ -458,7 +458,7 @@ class UnifiedPlayer {
   currentMode = "live";
 
   // The live stream URL, stored so we can switch back after AOD playback.
-  liveStreamURL = "https://media-cdn.collinsgroup.fi/stream.m3u8";
+  liveStreamURL = "https://media.radio10.fi/stream.m3u8";
 
   play() {
     if (this.videoElement) {
