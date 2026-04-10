@@ -179,7 +179,7 @@ class UnifiedPlayer {
   }
 
   initializePlayer() {
-    // Always initialize HLS player
+    if (window.LIVE_DISABLED) return;
     this.initializeHLSPlayer();
   }
 
@@ -552,6 +552,7 @@ class UnifiedPlayer {
    * Reattaches HLS.js to the video element and reloads the live source.
    */
   switchToLive() {
+    if (window.LIVE_DISABLED) return;
     if (!this.videoElement) return;
 
     console.log("Switching back to live stream");
@@ -630,12 +631,16 @@ window.player = player;
 // Export functions for HTML buttons and the player module
 window.playAudio = () => player.play();
 window.playAOD = (src, meta) => player.playAOD(src, meta);
-window.switchToLive = () => player.switchToLive();
+window.switchToLive = () => {
+  if (window.LIVE_DISABLED) return;
+  player.switchToLive();
+};
 window.stopAudio = () => player.stop();
 window.toggleComment = () => player.toggleComment();
 window.checkCommentHeight = () => player.checkCommentHeight();
 window.togglePlayback = () => player.togglePlayback();
 window.toggleLive = () => {
+  if (window.LIVE_DISABLED) return;
   if (player.currentMode !== "live") {
     player.switchToLive();
     player.play();

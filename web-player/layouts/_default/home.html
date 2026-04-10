@@ -1,6 +1,24 @@
 {{ define "main" }}
 <center>
   <div class="full-height">
+    {{ if .Params.live_disabled }}
+    <div class="player-container">
+      <div id="metadata-container">
+        {{ if .Params.live_disabled }}
+        <div class="no-stream">
+            <p class="no-stream__main">{{ .Params.live_disabled_message }}</p>
+            <p class="no-stream__main">Live broadcast is not available in your location. </p>
+            <p class="no-stream__sub">Kuuntele podcasteja Anytimesta!</p>
+            <a href="/feeds/">
+               <button class="primary-button no-stream">Anytime</button>
+            </a>
+            <p class="no-stream__sub">Mikäli etsit AirCore-demoa, <a href="https://fremen.fi/consultation">ota yhteyttä</a>.</p>
+            <p class="no-stream__sub">If you're looking for the AirCore demo, please <a href="https://fremen.fi/consultation">contact us</a>.</p>
+            {{ end }}
+        </div>
+      </div>
+    </div>
+    {{ else }}
     <div class="player-container">
       <button id="playStopButton" onclick="window.toggleLive()" class="play-stop-button" aria-label="Kuuntele suoraa lähetystä">
             <span class="" id="play">
@@ -16,16 +34,24 @@
             </p>
         </div>
     </div>
+    {{ end }}
+    {{ if not .Params.live_disabled }}
     <div id="upcoming-schedule"></div>
+    {{ end }}
   </div>
 
   <!-- Schedule overlay moved to baseof.html so it's accessible from all views -->
 
   <script>
+    window.LIVE_DISABLED = {{ if .Params.live_disabled }}true{{ else }}false{{ end }};
+    {{ if not .Params.live_disabled }}
     window.PROGRAM_DATA = {{ $.Site.Data.program | jsonify | safeJS }};
+    {{ end }}
   </script>
+  {{ if not .Params.live_disabled }}
   {{ $schedule := resources.Get "js/schedule.js" | minify | fingerprint }}
   <script src="{{ $schedule.RelPermalink }}"></script>
+  {{ end }}
 </center>
 
 {{ end }}
