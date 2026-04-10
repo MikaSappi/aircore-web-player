@@ -16,7 +16,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://api.deezer.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' blob: https: http:; connect-src 'self' https://media-cdn.collinsgroup.fi https://radio.collinsgroup.fi https://aod.collinsgroup.fi https://media.rss.com https://content.rss.com https://anchor.fm https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com; worker-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://api.deezer.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' blob: https: http:; connect-src 'self' https://media-cdn.collinsgroup.fi https://media.radio10.fi https://radio.collinsgroup.fi https://aod.collinsgroup.fi https://media.rss.com https://content.rss.com https://anchor.fm https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com; worker-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
           },
           {
             "key": "Strict-Transport-Security",
@@ -49,7 +49,7 @@
           },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://api.deezer.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' blob: https: http:; connect-src 'self' https://media-cdn.collinsgroup.fi https://radio.collinsgroup.fi https://aod.collinsgroup.fi https://media.rss.com https://content.rss.com https://anchor.fm https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com; worker-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://api.deezer.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; media-src 'self' blob: https: http:; connect-src 'self' https://media-cdn.collinsgroup.fi https://media.radio10.fi https://radio.collinsgroup.fi https://aod.collinsgroup.fi https://media.rss.com https://content.rss.com https://anchor.fm https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com; worker-src 'self' blob:; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
           },
           {
             "key": "Strict-Transport-Security",
