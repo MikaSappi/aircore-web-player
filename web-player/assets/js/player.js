@@ -3,9 +3,6 @@ function detectPlaybackMethod() {
   return "hls";
 }
 
-}
-
-
 class ArtworkFetcher {
   constructor() {
     this._cache = {};
