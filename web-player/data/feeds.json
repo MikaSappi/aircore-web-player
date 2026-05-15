@@ -21,7 +21,7 @@
                 {
                   "id": "collins-uutiset",
                   "title": "Radio 10 Uutiset",
-                  "feedUrl": "https://aod.collinsgroup.fi/feeds/news_feed.xml",
+                  "feedUrl": "https://r10-aod.s3.rbx.io.cloud.ovh.net/feeds/news_feed.xml",
                   "description": "Radio 10 uutiset, kuudesti päivässä, vuoden ympäri."
                 }
         ]
