@@ -7,13 +7,15 @@
         {{ if .Params.live_disabled }}
         <div class="no-stream">
             <p class="no-stream__main">{{ .Params.live_disabled_message }}</p>
-            <p class="no-stream__main">Live broadcast is not available in your location. </p>
+            <p class="no-stream__main">Live broadcast is not available in your location.</p>
             <p class="no-stream__sub">Kuuntele podcasteja Anytimesta!</p>
             <a href="/feeds/">
                <button class="primary-button no-stream">Anytime</button>
             </a>
-            <p class="no-stream__sub">Mikäli etsit AirCore-demoa, <a href="https://fremen.fi/consultation">ota yhteyttä</a>.</p>
-            <p class="no-stream__sub">If you're looking for the AirCore demo, please <a href="https://fremen.fi/consultation">contact us</a>.</p>
+            <!--
+                <p class="no-stream__sub">Mikäli etsit AirCore-demoa, <a href="https://fremen.fi/consultation">ota yhteyttä</a>.</p>
+                <p class="no-stream__sub">If you're looking for the AirCore demo, please <a href="https://fremen.fi/consultation">contact us</a>.</p>
+            -->
             {{ end }}
         </div>
       </div>
